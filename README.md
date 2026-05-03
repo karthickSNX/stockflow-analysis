@@ -25,21 +25,25 @@ A personal market intelligence dashboard for NSE Nifty 50. Tracks institutional 
 1. Clone the repo
 2. Create a virtual environment and install dependencies
 
+```
    python -m venv venv
    venv/scripts/activate      # Windows
    source venv/bin/activate   # macOS/Linux
    pip install -r requirements.txt
+```
 
 4. Create a `.env` file in the project root
 
+```
    DATABASE_URL=postgresql://your-connection-string-here
    CORS_ORIGIN=http://localhost:8000
+```
 
 5. Run `app/data/schema.sql` in your Supabase SQL editor or any PostgreSQL instance to create all five tables
 6. Seed the Nifty 50 stock list: `python -m app.setup.seed_stocks`
 7. Seed historical FII/DII data: `python -m app.setup.seed_flows`
 8. Start the server: `uvicorn app.main:app --reload`
-9. Open `http://localhost:8000/dashboard`
+9. Open `http://localhost:8000/dashboard` (you can run the pipeline from the dashboard too)
 
 ## Caveats
 
@@ -54,5 +58,7 @@ MIT
 ## Screenshots
 
 ![Screenshot 1](app/data/scr1.png)
+
 ![Screenshot 2](app/data/scr2.png)
+
 ![Screenshot 3](app/data/scr3.png)
