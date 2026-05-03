@@ -16,7 +16,7 @@ Thumbs.db
 *.log
 
 # Downloaded data files — CSVs from NSE, not needed in version control
-data/
+/data/
 
 # Potentially relevant — uncomment if you add these later
 # .idea/         # if you switch to PyCharm
