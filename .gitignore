@@ -1,0 +1,23 @@
+# Secrets — NEVER commit
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log
+
+# Downloaded data files — CSVs from NSE, not needed in version control
+data/
+
+# Potentially relevant — uncomment if you add these later
+# .idea/         # if you switch to PyCharm
+# *.ipynb        # if you add Jupyter notebooks for analysis

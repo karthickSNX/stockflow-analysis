@@ -1,0 +1,2004 @@
+    <!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>StockFlow Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── DARK THEME ─────────────────────────────────────────────────────── */
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;
+  --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.13);
+  --ink:#e6edf3;--ink2:#8b949e;--ink3:#6e7681;
+  --topbar-bg:rgba(13,17,23,.95);--nav-bg:#0d1117;
+  --blue:#388bfd;--blue2:#1f6feb;
+  --green:#3fb950;--red:#f85149;--amber:#d29922;--teal:#15b89f;
+  --r:12px;--r2:8px;
+}
+/* ── LIGHT THEME ────────────────────────────────────────────────────── */
+[data-theme="light"]{
+  --bg:#f4f6f9;--bg2:#ffffff;--bg3:#eef1f5;
+  --bd:rgba(0,0,0,.08);--bd2:rgba(0,0,0,.13);
+  --ink:#1a2233;--ink2:#4e6282;--ink3:#8ea3bc;
+  --topbar-bg:rgba(244,246,249,.95);--nav-bg:#f4f6f9;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+
+/* ── TOPBAR ─────────────────────────────────────────────────────────── */
+.topbar{position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:14px;
+  padding:0 24px;height:54px;background:var(--topbar-bg);
+  border-bottom:1px solid var(--bd2);backdrop-filter:blur(20px);}
+.brand{font-family:'Sora',sans-serif;font-size:.88rem;font-weight:800;letter-spacing:-.01em;}
+.brand span{color:var(--blue);}
+.mkt{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:20px;
+  font-size:.68rem;font-weight:600;border:1px solid var(--bd2);background:rgba(255,255,255,.04);}
+[data-theme="light"] .mkt{background:rgba(0,0,0,.03);}
+.dot{width:6px;height:6px;border-radius:50%;}
+.d-open{background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite;}
+.d-pre{background:var(--amber);animation:blink 2s infinite;}
+.d-closed{background:var(--ink3);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.tbr{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.runbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;
+  border-radius:var(--r2);background:var(--blue2);color:#fff;
+  font-size:.76rem;font-weight:600;border:none;cursor:pointer;transition:background .15s,transform .12s;}
+.runbtn:hover{background:var(--blue);transform:translateY(-1px);}
+.runbtn:disabled{background:var(--bg3);color:var(--ink3);cursor:not-allowed;transform:none;}
+.lrun{font-size:.68rem;color:var(--ink3);white-space:nowrap;font-weight:400;}
+.theme-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--bd2);
+  background:var(--bg3);color:var(--ink2);cursor:pointer;font-size:.88rem;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.theme-btn:hover{border-color:var(--blue);color:var(--blue);}
+
+/* ── NAV ────────────────────────────────────────────────────────────── */
+.nav{display:flex;gap:2px;padding:10px 24px 0;border-bottom:1px solid var(--bd);
+  background:var(--nav-bg);align-items:flex-end;flex-wrap:wrap;}
+.ntab{padding:8px 16px 10px;font-size:.8rem;font-weight:600;color:var(--ink2);cursor:pointer;
+  border-bottom:2px solid transparent;transition:color .15s,border-color .15s;
+  user-select:none;white-space:nowrap;letter-spacing:.01em;}
+.ntab:hover{color:var(--ink);}
+.ntab.on{color:var(--blue);border-bottom-color:var(--blue);}
+
+/* Heatmap controls in nav — no window buttons */
+#hm-controls{display:none;margin-left:auto;align-items:center;gap:8px;padding-bottom:8px;flex-wrap:wrap;}
+#hm-controls.on{display:flex;}
+.hm-btn{padding:3px 10px;border-radius:20px;font-size:.65rem;font-weight:600;
+  border:1px solid var(--bd2);background:var(--bg3);color:var(--ink2);cursor:pointer;
+  transition:all .15s;white-space:nowrap;line-height:1.7;}
+.hm-btn:hover{border-color:var(--blue);color:var(--blue);}
+.hm-btn.active{background:var(--blue2);border-color:var(--blue2);color:#fff;}
+.hm-sep{width:1px;height:14px;background:var(--bd2);margin:0 2px;}
+
+/* Legend: red→grey→teal */
+#hm-legend{display:flex;align-items:center;gap:5px;font-size:.62rem;color:var(--ink3);}
+.hml-bar{width:48px;height:5px;border-radius:3px;}
+.hml-bar-neg{background:linear-gradient(to right,rgb(200,30,20),rgb(240,160,155));}
+.hml-bar-pos{background:linear-gradient(to right,rgb(150,220,150),rgb(30,160,60));}
+
+/* ── MAIN / LAYOUT ──────────────────────────────────────────────────── */
+.main{padding:20px 24px;}
+.panel{display:none;}.panel.on{display:block;}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:20px;}
+.ctitle{font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--ink3);margin-bottom:16px;}
+
+/* ── STAT SUMMARY ───────────────────────────────────────────────────── */
+.sumblock{display:flex;align-items:stretch;
+  padding:0;margin-bottom:14px;
+  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
+  overflow:hidden;}
+.sumitem{flex:1;padding:18px 24px;display:flex;flex-direction:column;gap:6px;
+  border-right:1px solid var(--bd);}
+.sumitem:last-child{border-right:none;}
+.sumlbl{font-size:.68rem;font-weight:500;color:var(--ink3);letter-spacing:.01em;}
+.sumval{font-family:'Sora',sans-serif;font-size:1.9rem;font-weight:800;
+  line-height:1;letter-spacing:-.03em;color:var(--ink);}
+.sumval.v-red{color:var(--red);}
+.sumval.v-teal{color:var(--teal);}
+.sumval.v-amber{color:var(--amber);}
+.sumsub{font-size:.62rem;color:var(--ink3);font-weight:400;}
+
+/* ── FILTERS ────────────────────────────────────────────────────────── */
+.fbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.fi{padding:7px 12px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--bd2);
+  color:var(--ink);font-size:.8rem;font-family:inherit;outline:none;
+  flex:1;min-width:140px;transition:border-color .15s;}
+.fi:focus{border-color:var(--blue);}
+.fs{padding:7px 10px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--bd2);
+  color:var(--ink);font-size:.8rem;font-family:inherit;cursor:pointer;outline:none;}
+
+/* ── TABLE ──────────────────────────────────────────────────────────── */
+.dtbl{width:100%;border-collapse:collapse;}
+.dtbl th{padding:10px 12px;text-align:left;font-size:.65rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);
+  border-bottom:1px solid var(--bd2);white-space:nowrap;
+  cursor:pointer;user-select:none;transition:color .15s;}
+.dtbl th:hover{color:var(--ink2);}
+.dtbl th.sort-asc,.dtbl th.sort-desc{color:var(--blue);}
+.sort-arrow{display:inline-block;margin-left:3px;font-size:.58rem;opacity:.8;}
+.dtbl td{padding:10px 12px;border-bottom:1px solid var(--bd);font-size:.82rem;vertical-align:middle;}
+.dtbl tr:last-child td{border-bottom:none;}
+.dtbl tbody tr{cursor:pointer;transition:background .1s;}
+.dtbl tbody tr:hover{background:rgba(56,139,253,.03);}
+.dtbl tbody tr.xopen{background:rgba(56,139,253,.05);}
+.sym{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:.82rem;color:var(--blue);}
+.cname{font-size:.76rem;color:var(--ink2);font-weight:400;}
+.stag{font-size:.59rem;padding:2px 7px;border-radius:4px;
+  background:rgba(255,255,255,.05);color:var(--ink3);font-weight:500;}
+[data-theme="light"] .stag{background:rgba(0,0,0,.05);}
+
+/* ── SCORE BAR ──────────────────────────────────────────────────────── */
+.sbw{display:flex;align-items:center;gap:7px;}
+.sbt{width:68px;height:5px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;flex-shrink:0;}
+[data-theme="light"] .sbt{background:rgba(0,0,0,.07);}
+.sbf{height:100%;border-radius:3px;transition:width .3s;}
+.sv{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:600;
+  min-width:36px;font-variant-numeric:tabular-nums;}
+.db{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;
+  font-size:.63rem;font-weight:600;white-space:nowrap;}
+.d-bull{background:rgba(21,184,159,.12);color:var(--teal);border:1px solid rgba(21,184,159,.25);}
+.d-bear{background:rgba(248,81,73,.1);color:var(--red);border:1px solid rgba(248,81,73,.18);}
+.d-neut{background:rgba(255,255,255,.04);color:var(--ink3);border:1px solid var(--bd);}
+[data-theme="light"] .d-neut{background:rgba(0,0,0,.03);}
+
+/* ── EXPANDED ROW ───────────────────────────────────────────────────── */
+.xrow td{padding:0!important;border-bottom:1px solid var(--bd2)!important;}
+.xinn{padding:18px 20px;background:rgba(56,139,253,.03);
+  border-top:1px solid rgba(56,139,253,.12);
+  display:grid;grid-template-columns:1fr;gap:16px;}
+.xinn-chart{width:100%;}
+/* ── EXPANDED ROW META ──────────────────────────────────────────────── */
+.xinn-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;}
+@media(max-width:600px){.xinn-meta{grid-template-columns:1fr;}}
+.xmeta-card{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r2);padding:12px 14px;}
+/* Two-column flow bars */
+.fb-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+/* Price+score canvas */
+.pchart-wrap{position:relative;width:100%;height:240px;}
+.pchart-cv{width:100%;height:100%;display:block;}
+.pchart-tt{position:absolute;background:var(--bg2);border:1px solid var(--bd2);
+  border-radius:5px;padding:6px 10px;font-size:.68rem;pointer-events:none;
+  display:none;z-index:5;white-space:nowrap;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.xt{font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ink3);margin-bottom:8px;}
+.spark{width:100%;height:44px;}
+.fbrow{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+.fblbl{font-size:.63rem;color:var(--ink2);width:26px;flex-shrink:0;font-weight:500;}
+.fbtrk{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden;}
+[data-theme="light"] .fbtrk{background:rgba(0,0,0,.06);}
+.fbpos{height:100%;border-radius:3px;background:var(--teal);}
+.fbneg{height:100%;border-radius:3px;background:var(--red);}
+.fbval{font-size:.72rem;font-family:'JetBrains Mono',monospace;
+  font-variant-numeric:tabular-nums;font-weight:600;width:80px;text-align:right;flex-shrink:0;}
+.fbdate{font-size:.58rem;color:var(--ink3);font-weight:600;letter-spacing:.04em;
+  margin-top:6px;margin-bottom:2px;padding-top:4px;border-top:1px solid var(--bd);}
+.fbdate:first-child{margin-top:0;border-top:none;}
+.xperiod-btn{padding:3px 9px;font-size:.64rem;font-weight:600;color:var(--ink2);
+  background:var(--bg3);border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.xperiod-btn.active{background:var(--blue2);color:#fff;}
+
+/* ── HEATMAP ────────────────────────────────────────────────────────── */
+#p-heatmap{overflow:hidden;}
+#heatmap-wrap{position:relative;width:100%;}
+.stile{position:absolute;cursor:pointer;overflow:hidden;transition:filter .18s;}
+.stile:hover{filter:brightness(1.12);z-index:2;}
+.stile-inner{width:100%;height:100%;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;padding:6px;text-align:center;}
+.stname{font-family:'DM Sans',sans-serif;font-weight:700;line-height:1.2;margin-bottom:2px;}
+.stscore{font-family:'Sora',sans-serif;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+.stcount{font-family:'DM Sans',sans-serif;margin-top:2px;opacity:.82;font-weight:400;}
+.stpct{font-family:'JetBrains Mono',sans-serif;font-size:.82rem;font-weight:600;margin-top:3px;opacity:.92;font-variant-numeric:tabular-nums;}
+.hm-period{display:flex;border:1px solid var(--bd2);border-radius:var(--r2);overflow:hidden;}
+.hm-period-btn{padding:4px 10px;font-size:.68rem;font-weight:600;color:var(--ink2);
+  background:var(--bg3);border:none;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.hm-period-btn.active{background:var(--blue2);color:#fff;}
+#hm-asof{font-size:.65rem;color:var(--ink3);font-variant-numeric:tabular-nums;margin-left:2px;}
+#hm-drill{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:300;width:min(520px,92vw);max-height:80vh;overflow-y:auto;
+  background:var(--bg2);border:1px solid var(--bd2);border-radius:12px;
+  box-shadow:0 8px 40px rgba(0,0,0,.45);padding:20px;}
+#hm-drill.on{display:block;}
+#hm-drill-bg{display:none;position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.5);}
+#hm-drill-bg.on{display:block;}
+.drill-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.drill-title{font-family:'Sora',sans-serif;font-weight:700;font-size:.95rem;}
+.drill-close{background:none;border:none;cursor:pointer;color:var(--ink2);font-size:1.1rem;padding:2px 6px;}
+.drill-row{display:flex;align-items:center;gap:10px;padding:8px 10px;
+  border-radius:var(--r2);margin-bottom:4px;background:var(--bg3);border:1px solid var(--bd);}
+.drill-sym{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.78rem;min-width:72px;}
+.drill-co{font-size:.72rem;color:var(--ink2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.drill-score{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-variant-numeric:tabular-nums;min-width:48px;text-align:right;}
+.drill-pct{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-variant-numeric:tabular-nums;min-width:56px;text-align:right;}
+.drill-flag{font-size:.6rem;padding:1px 5px;border-radius:4px;background:rgba(248,81,73,.15);color:var(--red);flex-shrink:0;}
+
+/* ── FLOW CHART ─────────────────────────────────────────────────────── */
+.flow-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;row-gap:10px;}
+.flow-seg{display:flex;border:1px solid var(--bd2);border-radius:var(--r2);overflow:hidden;}
+.flow-seg-btn{padding:5px 12px;font-size:.72rem;font-weight:600;color:var(--ink2);
+  background:var(--bg3);border:none;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.flow-seg-btn:hover{color:var(--ink);}
+.flow-seg-btn.active{background:var(--blue2);color:#fff;}
+.flow-mode{display:flex;border:1px solid var(--bd2);border-radius:var(--r2);overflow:hidden;}
+.flow-mode-btn{padding:5px 12px;font-size:.72rem;font-weight:600;color:var(--ink2);
+  background:var(--bg3);border:none;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.flow-mode-btn:hover{color:var(--ink);}
+.flow-mode-btn.active{background:var(--blue2);color:#fff;}
+.flow-series{display:none;gap:6px;align-items:center;}
+.flow-series.on{display:flex;}
+.flow-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
+  font-size:.66rem;font-weight:600;border:1px solid var(--bd2);background:var(--bg3);
+  color:var(--ink2);cursor:pointer;transition:all .15s;user-select:none;}
+.flow-pill .fp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.flow-pill.active{color:var(--ink);}
+.flow-pill.active.fii-pill{border-color:rgba(56,139,253,.5);background:rgba(56,139,253,.1);}
+.flow-pill.active.dii-pill{border-color:rgba(21,184,159,.5);background:rgba(21,184,159,.1);}
+.flow-pill.active.nifty-pill{border-color:rgba(210,153,34,.5);background:rgba(210,153,34,.1);}
+.flow-legend{display:flex;gap:14px;align-items:center;}
+.flow-leg-item{display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--ink2);}
+.flow-leg-dot{width:8px;height:8px;border-radius:2px;}
+#flow-canvas-wrap{position:relative;height:100%;width:100%;min-height:300px;}
+#flow-canvas{width:100%;height:100%;display:block;}
+.flow-tooltip{position:absolute;background:var(--bg2);border:1px solid var(--bd2);
+  border-radius:6px;padding:8px 11px;font-size:.7rem;pointer-events:none;
+  display:none;z-index:10;min-width:162px;box-shadow:0 4px 24px rgba(0,0,0,.28);
+  backdrop-filter:blur(8px);}
+.flow-tt-date{font-weight:700;margin-bottom:5px;color:var(--ink);font-size:.68rem;
+  letter-spacing:.02em;text-transform:uppercase;}
+.flow-tt-row{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:3px;}
+.flow-tt-lbl{color:var(--ink2);display:flex;align-items:center;}
+.flow-tt-val{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;
+  font-weight:600;font-size:.69rem;}
+
+/* ── PIPELINE ───────────────────────────────────────────────────────── */
+.rtl{display:flex;flex-direction:column;gap:7px;}
+.ritem{display:flex;align-items:center;gap:11px;padding:10px 14px;
+  border-radius:var(--r2);background:var(--bg3);border:1px solid var(--bd);font-size:.8rem;}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rd-ok{background:var(--green);}
+.rd-fail{background:var(--red);}
+.rd-run{background:var(--amber);animation:blink 1s infinite;}
+.rtime{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;
+  font-size:.69rem;color:var(--ink2);min-width:128px;}
+.rstats{display:flex;gap:12px;flex:1;flex-wrap:wrap;}
+.rstat{font-size:.73rem;color:var(--ink2);}
+.rstat strong{color:var(--ink);font-weight:600;}
+.rtrig{font-size:.62rem;padding:2px 7px;border-radius:4px;
+  background:rgba(255,255,255,.05);color:var(--ink3);}
+[data-theme="light"] .rtrig{background:rgba(0,0,0,.05);}
+
+/* ── FIRST LAUNCH OVERLAY ───────────────────────────────────────────── */
+#ib{display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(13,17,23,.97);align-items:center;justify-content:center;}
+[data-theme="light"] #ib{background:rgba(244,246,249,.97);}
+.ic{background:var(--bg2);border:1px solid var(--bd2);border-radius:16px;
+  padding:36px 40px;max-width:420px;width:90%;text-align:center;}
+.it{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:800;margin-bottom:8px;}
+.is{font-size:.82rem;color:var(--ink2);margin-bottom:22px;line-height:1.65;}
+.ib-btn{display:inline-flex;align-items:center;gap:6px;padding:11px 24px;
+  border-radius:var(--r2);background:var(--blue2);color:#fff;
+  font-size:.86rem;font-weight:600;border:none;cursor:pointer;transition:background .15s;}
+.ib-btn:hover{background:var(--blue);}
+
+/* ── MISC ───────────────────────────────────────────────────────────── */
+.empty{text-align:center;padding:40px 0;color:var(--ink3);font-size:.84rem;}
+.ei{font-size:1.7rem;margin-bottom:9px;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px;}
+[data-theme="light"] ::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);}
+</style>
+</head>
+<body>
+
+<!-- First Launch Overlay -->
+<div id="ib">
+  <div class="ic">
+    <div class="it">First Launch</div>
+    <div class="is">Your stock universe is empty. Run <code>python -m app.setup.seed_stocks</code> first, then refresh.</div>
+    <button class="ib-btn" onclick="document.getElementById('ib').style.display='none';boot()">Retry</button>
+  </div>
+</div>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="brand">StockFlow <span>Analysis</span></div>
+  <div class="mkt"><span class="dot d-closed" id="mdot"></span><span id="mtxt">—</span></div>
+  <div class="tbr">
+    <span class="lrun" id="lrun"></span>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark">🌙</button>
+    <button class="runbtn" id="runbtn" onclick="runPipe()">&#9654; Run Pipeline</button>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav" id="main-nav">
+  <div class="ntab on" onclick="sw('divergence',this)">Divergence</div>
+  <div class="ntab" onclick="sw('heatmap',this)">Heatmap</div>
+  <div class="ntab" onclick="sw('flows',this)">FII/DII Flows</div>
+  <div class="ntab" onclick="sw('pipeline',this)">Pipeline</div>
+
+  <div id="hm-controls">
+    <div id="hm-legend">
+      <span>Bearish</span>
+      <div class="hml-bar hml-bar-neg"></div>
+      <div class="hml-bar hml-bar-pos"></div>
+      <span>Bullish</span>
+    </div>
+    <div class="hm-sep"></div>
+    <div class="hm-period">
+      <button class="hm-period-btn active" id="hmp-today" onclick="setHmPeriod('today',this)">Today</button>
+      <button class="hm-period-btn" id="hmp-1W" onclick="setHmPeriod('1W',this)">1W</button>
+      <button class="hm-period-btn" id="hmp-1M" onclick="setHmPeriod('1M',this)">1M</button>
+      <button class="hm-period-btn" id="hmp-3M" onclick="setHmPeriod('3M',this)">3M</button>
+    </div>
+    <span id="hm-asof"></span>
+    <div class="hm-sep"></div>
+    <button class="hm-btn active" id="hm-sort-size"  onclick="setHmSort('size')">By Size</button>
+    <button class="hm-btn"        id="hm-sort-score" onclick="setHmSort('score')">By Score</button>
+    <div class="hm-sep"></div>
+    <button class="hm-btn active" id="hm-color-rel" onclick="setHmColor('rel')">Rel</button>
+    <button class="hm-btn"        id="hm-color-abs" onclick="setHmColor('abs')">Abs</button>
+    <div class="hm-sep"></div>
+    <button class="hm-btn active" id="hm-view-div" onclick="setHmView('divergence')">Divergence</button>
+    <button class="hm-btn"        id="hm-view-pct" onclick="setHmView('pct')">% Gain</button>
+    <div class="hm-sep"></div>
+    <div style="display:flex;align-items:center;gap:5px;">
+      <span style="font-size:.65rem;font-weight:600;color:var(--ink3);letter-spacing:.04em;">Font</span>
+      <button id="hm-ink-sign" onclick="setHmInk('sign')" title="Sign-based text colour" style="width:18px;height:18px;border-radius:50%;border:2px solid var(--blue2);padding:0;cursor:pointer;overflow:hidden;background:none;">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path d="M9 0a9 9 0 1 0 0 18A9 9 0 0 0 9 0z" fill="#111"/><path d="M9 0a9 9 0 0 1 0 18V0z" fill="#fff"/></svg>
+      </button>
+      <button id="hm-ink-lum" onclick="setHmInk('lum')" title="Luminance-based text colour" style="width:18px;height:18px;border-radius:50%;border:2px solid transparent;padding:0;cursor:pointer;overflow:hidden;background:none;">
+        <svg width="18" height="18" viewBox="0 0 18 18">
+          <defs><pattern id="stripe" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.5" height="3" fill="#111"/><rect x="1.5" width="1.5" height="3" fill="#fff"/></pattern></defs>
+          <circle cx="9" cy="9" r="9" fill="url(#stripe)"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- Divergence Panel -->
+<div class="panel on" id="p-divergence">
+  <div class="sumblock">
+    <div class="sumitem">
+      <span class="sumlbl">Index</span>
+      <span class="sumval">Nifty 50</span>
+    </div>
+    <div class="sumitem">
+      <span class="sumlbl">Active signals</span>
+      <span class="sumval v-red" id="s-f">—</span>
+      <span class="sumsub">|score| &gt; 0.3</span>
+    </div>
+    <div class="sumitem">
+      <span class="sumlbl">Bull Divergence</span>
+      <span class="sumval v-teal" id="s-b">—</span>
+      <span class="sumsub">Price↑ · FII↓</span>
+    </div>
+    <div class="sumitem">
+      <span class="sumlbl">Bear Divergence</span>
+      <span class="sumval v-amber" id="s-br">—</span>
+      <span class="sumsub">Price↓ · FII↑</span>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div class="ctitle" style="margin-bottom:0;">Divergence Scores — Nifty 50</div>
+      <div id="div-asof" style="font-size:.68rem;color:var(--ink3);font-variant-numeric:tabular-nums;"></div>
+    </div>
+    <div class="fbar">
+      <input class="fi" placeholder="Search symbol or company…" id="dq" oninput="fDiv()">
+      <select class="fs" id="dsec" onchange="fDiv()"><option value="">All Sectors</option></select>
+      <select class="fs" id="ddir" onchange="fDiv()">
+        <option value="">All Directions</option>
+        <option value="bull">FII Buying</option>
+        <option value="bear">FII Selling</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="dtbl">
+        <thead><tr>
+          <th onclick="thSort('symbol')">Symbol <span class="sort-arrow" id="sa-symbol"></span></th>
+          <th onclick="thSort('company')">Company <span class="sort-arrow" id="sa-company"></span></th>
+          <th onclick="thSort('sector')">Sector <span class="sort-arrow" id="sa-sector"></span></th>
+          <th onclick="thSort('direction')">Sentiment <span class="sort-arrow" id="sa-direction"></span></th>
+          <th onclick="thSort('10')">10d <span class="sort-arrow" id="sa-10"></span></th>
+          <th onclick="thSort('20')">20d <span class="sort-arrow" id="sa-20"></span></th>
+          <th class="sort-desc" onclick="thSort('30')">30d <span class="sort-arrow" id="sa-30">▼</span></th>
+        </tr></thead>
+        <tbody id="dtb">
+          <tr><td colspan="7"><div class="empty"><div class="ei">⏳</div>Loading…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Heatmap Panel -->
+<div class="panel" id="p-heatmap" style="margin:0 -24px;">
+  <div id="heatmap-wrap">
+    <div class="empty"><div class="ei">⏳</div>Loading…</div>
+  </div>
+</div>
+
+<!-- Sector drill-down modal -->
+<div id="hm-drill-bg" onclick="closeDrill()"></div>
+<div id="hm-drill">
+  <div class="drill-hdr">
+    <div class="drill-title" id="drill-title" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;" title="View in Divergence table" onclick="goSec(this.textContent);closeDrill()">Sector</div>
+    <button class="drill-close" onclick="closeDrill()">✕</button>
+  </div>
+  <div id="drill-body"></div>
+</div>
+
+<!-- FII/DII Flows Panel -->
+<div class="panel" id="p-flows">
+  <div class="card" style="min-height:480px;display:flex;flex-direction:column;">
+    <div class="flow-toolbar">
+      <!-- Period -->
+      <div class="flow-seg">
+        <button class="flow-seg-btn" onclick="setFlowPeriod('daily',this)">Daily</button>
+        <button class="flow-seg-btn active" onclick="setFlowPeriod('weekly',this)">Weekly</button>
+        <button class="flow-seg-btn" onclick="setFlowPeriod('monthly',this)">Monthly</button>
+      </div>
+      <!-- Chart mode -->
+      <div class="flow-mode">
+        <button class="flow-mode-btn active" onclick="setFlowMode('bars',this)">Bars</button>
+        <button class="flow-mode-btn" onclick="setFlowMode('lines',this)">Lines</button>
+        <button class="flow-mode-btn" onclick="setFlowMode('cumulative',this)">Cumul.</button>
+        <button class="flow-mode-btn" onclick="setFlowMode('step',this)">Step</button>
+      </div>
+      <!-- Series toggles — lines/baseline/step mode only -->
+      <div class="flow-series" id="flow-series">
+        <span style="font-size:.65rem;color:var(--ink3);font-weight:500;">Show:</span>
+        <div class="flow-pill fii-pill active" id="pill-fii" onclick="toggleSeries('fii')">
+          <span class="fp-dot" style="background:rgb(56,139,253);"></span>FII Net
+        </div>
+        <div class="flow-pill dii-pill active" id="pill-dii" onclick="toggleSeries('dii')">
+          <span class="fp-dot" style="background:rgb(21,184,159);"></span>DII Net
+        </div>
+        <div class="flow-pill nifty-pill active" id="pill-nifty" onclick="toggleSeries('nifty')">
+          <span class="fp-dot" style="background:rgb(210,153,34);"></span>Nifty
+        </div>
+        <!-- Nifty line style -->
+        <div class="flow-mode" style="margin-left:4px;">
+          <button class="flow-mode-btn nifty-style-btn" id="nstyle-solid" onclick="setNiftyStyle('solid')" style="padding:3px 8px;font-size:.62rem;">—</button>
+          <button class="flow-mode-btn nifty-style-btn active" id="nstyle-dashed" onclick="setNiftyStyle('dashed')" style="padding:3px 8px;font-size:.62rem;">- -</button>
+          <button class="flow-mode-btn nifty-style-btn" id="nstyle-dotted" onclick="setNiftyStyle('dotted')" style="padding:3px 8px;font-size:.62rem;">···</button>
+        </div>
+        <!-- Fill opacity — hidden in bars/step mode -->
+        <div id="flow-opacity" style="display:flex;align-items:center;gap:6px;margin-left:4px;">
+          <span style="font-size:.65rem;color:var(--ink3);font-weight:500;">Fill:</span>
+          <input type="range" min="0" max="40" value="12" step="1"
+            oninput="setFillOpacity(this.value)"
+            style="width:72px;height:3px;accent-color:var(--blue2);cursor:pointer;">
+          <span id="opacity-val" style="font-size:.63rem;color:var(--ink3);font-variant-numeric:tabular-nums;min-width:26px;">12%</span>
+        </div>
+      </div>
+      <!-- Bar-mode legend -->
+      <div class="flow-legend" id="flow-bar-legend" style="margin-left:auto;">
+        <div class="flow-leg-item"><div class="flow-leg-dot" style="background:rgb(56,139,253);"></div>FII Net</div>
+        <div class="flow-leg-item"><div class="flow-leg-dot" style="background:rgb(21,184,159);"></div>DII Net</div>
+      </div>
+    </div>
+    <div id="flow-canvas-wrap" style="flex:1;min-height:0;">
+      <div id="flow-loading" style="display:flex;align-items:center;justify-content:center;height:100%;"><div class="empty"><div class="ei">⏳</div>Loading…</div></div>
+      <canvas id="flow-canvas" style="display:none;"></canvas>
+      <div class="flow-tooltip" id="flow-tt"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Pipeline Panel -->
+<div class="panel" id="p-pipeline">
+  <div class="card">
+    <div class="ctitle">Pipeline Run History</div>
+    <div class="rtl" id="rtl"><div class="empty"><div class="ei">⏳</div>Loading…</div></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+const API='';
+async function req(p,o={}){const r=await fetch(API+p,o);if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ── Theme ──────────────────────────────────────────────────────────── */
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('themeBtn').textContent=isDark?'☀️':'🌙';
+  localStorage.setItem('nse-theme',isDark?'light':'dark');
+  if(_hmData&&document.getElementById('p-heatmap').classList.contains('on'))renderHeat(_hmData);
+  if(_flowRaw&&document.getElementById('p-flows').classList.contains('on'))renderFlow();
+}
+(function(){
+  const saved=localStorage.getItem('nse-theme');
+  if(saved){
+    document.documentElement.setAttribute('data-theme',saved);
+    document.addEventListener('DOMContentLoaded',()=>{
+      const btn=document.getElementById('themeBtn');
+      if(btn)btn.textContent=saved==='light'?'🌙':'☀️'; // light mode → show moon (switch to dark)
+    });
+  }
+})();
+
+/* ── Tab switching ──────────────────────────────────────────────────── */
+function sw(n,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('p-'+n).classList.add('on');
+  el.classList.add('on');
+  document.getElementById('hm-controls').classList.toggle('on',n==='heatmap');
+  if(n==='heatmap')lHeat();
+  if(n==='flows')lFlows();
+  if(n==='pipeline')lHist();
+}
+
+/* ── Market status ──────────────────────────────────────────────────── */
+function mkt(){
+  const n=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+  const m=n.getHours()*60+n.getMinutes(),d=n.getDay();
+  const dot=document.getElementById('mdot'),txt=document.getElementById('mtxt');
+  if(d===0||d===6){dot.className='dot d-closed';txt.textContent='Weekend';return;}
+  if(m>=540&&m<555){dot.className='dot d-pre';txt.textContent='Pre-open';}
+  else if(m>=555&&m<930){dot.className='dot d-open';txt.textContent='Market Open';}
+  else{dot.className='dot d-closed';txt.textContent='Market Closed';}
+}
+
+/* ── Score colour helpers ───────────────────────────────────────────── */
+function sc(v){
+  if(v===null||v===undefined)return'var(--ink3)';
+  const a=Math.abs(v);
+  if(a<0.2)return'var(--ink3)';
+  if(v>0)return a>0.4?'var(--teal)':'#5ecfbc';
+  return a>0.4?'var(--red)':'#ffa198';
+}
+function dbg(v){
+  if(v===null||Math.abs(v)<0.2)return'<span class="db d-neut">Neutral</span>';
+  if(v>0)return'<span class="db d-bull">FII Buy</span>';
+  return'<span class="db d-bear">FII Sell</span>';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   DIVERGENCE TABLE
+   All 8 columns sortable. Click = desc, click again = asc, click again = reset (alpha).
+   _sortCol: 'symbol'|'company'|'sector'|'score'|'direction'|'10'|'20'|'30'
+   _sortDir: 'desc'|'asc'|null
+   ══════════════════════════════════════════════════════════════════════ */
+let _dd=[];
+let _sortCol='30',_sortDir='desc';
+const ALL_COLS=['symbol','company','sector','direction','10','20','30'];
+
+async function lDiv(){
+  try{
+    _dd=await req('/divergence/all');
+    const secs=[...new Set(_dd.map(d=>d.sector).filter(Boolean))].sort();
+    const sel=document.getElementById('dsec');
+    if(sel.options.length===1){
+      secs.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+    }
+    document.getElementById('s-f').textContent=_dd.filter(d=>Math.abs(d.score_30d||0)>0.3).length;
+    document.getElementById('s-b').textContent=_dd.filter(d=>(d.score_30d||0)>0.3).length;
+    document.getElementById('s-br').textContent=_dd.filter(d=>(d.score_30d||0)<-0.3).length;
+    // Populate as-of date from pipeline status
+    try{
+      const st=await req('/pipeline/status');
+      const asofEl=document.getElementById('div-asof');
+      if(asofEl&&st&&st.latest_run){
+        const d=new Date(st.latest_run.finished_at||st.latest_run.started_at);
+        const lbl=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+        asofEl.textContent='scores as of '+lbl;
+      }
+    }catch(_){}
+    rDiv(_dd);
+  }catch(e){
+    document.getElementById('dtb').innerHTML=
+      '<tr><td colspan="7"><div class="empty"><div class="ei">⚠️</div>'+esc(e.message)+'</div></td></tr>';
+  }
+}
+
+function thSort(col){
+  if(_sortCol===col){
+    if(_sortDir==='desc')_sortDir='asc';
+    else{_sortCol=null;_sortDir=null;}
+  }else{
+    _sortCol=col;_sortDir='desc';
+  }
+  // Update all header visuals
+  ALL_COLS.forEach(c=>{
+    const sa=document.getElementById('sa-'+c);
+    const th=document.querySelector('th[onclick="thSort(\''+c+'\')"]');
+    if(sa)sa.textContent='';
+    if(th){th.classList.remove('sort-asc','sort-desc');}
+    if(c===_sortCol&&_sortDir){
+      if(sa)sa.textContent=_sortDir==='asc'?'▲':'▼';
+      if(th)th.classList.add(_sortDir==='asc'?'sort-asc':'sort-desc');
+    }
+  });
+  fDiv();
+}
+
+function fDiv(){
+  const q=document.getElementById('dq').value.toLowerCase();
+  const sec=document.getElementById('dsec').value;
+  const dir=document.getElementById('ddir').value;
+  // Use active window col for direction filter, default 30d
+  const win=(_sortCol==='10'||_sortCol==='20'||_sortCol==='30')?_sortCol:'30';
+  const filtered=_dd.filter(d=>{
+    const s=d['score_'+win+'d']||0;
+    return(!q||(d.symbol||'').toLowerCase().includes(q)||(d.company||'').toLowerCase().includes(q))
+      &&(!sec||d.sector===sec)
+      &&(!dir||(dir==='bull'&&s>0.2)||(dir==='bear'&&s<-0.2));
+  });
+  rDiv(filtered);
+}
+
+function rDiv(data){
+  const tb=document.getElementById('dtb');
+  if(!data.length){
+    tb.innerHTML='<tr><td colspan="7"><div class="empty"><div class="ei">📭</div>No results.</div></td></tr>';
+    return;
+  }
+  let sorted=[...data];
+  if(_sortCol&&_sortDir){
+    sorted.sort((a,b)=>{
+      let av,bv;
+      if(_sortCol==='symbol'){av=a.symbol||'';bv=b.symbol||'';}
+      else if(_sortCol==='company'){av=a.company||'';bv=b.company||'';}
+      else if(_sortCol==='sector'){av=a.sector||'';bv=b.sector||'';}
+      else if(_sortCol==='direction'){av=a.score_30d||0;bv=b.score_30d||0;}
+      else if(_sortCol==='10'){av=Math.abs(a.score_10d||0);bv=Math.abs(b.score_10d||0);}
+      else if(_sortCol==='20'){av=Math.abs(a.score_20d||0);bv=Math.abs(b.score_20d||0);}
+      else if(_sortCol==='30'){av=Math.abs(a.score_30d||0);bv=Math.abs(b.score_30d||0);}
+      else{av=a.symbol||'';bv=b.symbol||'';}
+      if(typeof av==='string')return _sortDir==='asc'?av.localeCompare(bv):bv.localeCompare(av);
+      return _sortDir==='asc'?av-bv:bv-av;
+    });
+  }else{
+    sorted.sort((a,b)=>(a.symbol||'').localeCompare(b.symbol||''));
+  }
+  // badge tracks sort window; falls back to 30d when sorting by symbol/company/sector
+  const win=(_sortCol==='10'||_sortCol==='20'||_sortCol==='30')?_sortCol:'30';
+  tb.innerHTML=sorted.map(d=>{
+    return'<tr onclick="xp(this,\''+esc(d.symbol)+'\')" data-sym="'+esc(d.symbol)+'">'
+      +'<td><span class="sym">'+esc(d.symbol)+'</span></td>'
+      +'<td><span class="cname">'+(d.company||'')+'</span></td>'
+      +'<td><span class="stag">'+(d.sector||'—')+'</span></td>'
+      +'<td style="white-space:nowrap;">'+dbg(d['score_'+win+'d'])+'</td>'
+      +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:.75rem;font-variant-numeric:tabular-nums;color:'+sc(d.score_10d)+';">'+(d.score_10d!=null?d.score_10d.toFixed(2):'—')+'</td>'
+      +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:.75rem;font-variant-numeric:tabular-nums;color:'+sc(d.score_20d)+';">'+(d.score_20d!=null?d.score_20d.toFixed(2):'—')+'</td>'
+      +'<td style="font-family:\'JetBrains Mono\',monospace;font-size:.75rem;font-variant-numeric:tabular-nums;color:'+sc(d.score_30d)+';">'+(d.score_30d!=null?d.score_30d.toFixed(2):'—')+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+/* ── Expanded row ───────────────────────────────────────────────────── */
+let _xs=null;
+async function xp(row,sym){
+  const ex=document.getElementById('x-'+sym);
+  if(ex){ex.remove();row.classList.remove('xopen');_xs=null;return;}
+  if(_xs){
+    const old=document.getElementById('x-'+_xs);if(old)old.remove();
+    const pr=document.querySelector('[data-sym="'+_xs+'"]');if(pr)pr.classList.remove('xopen');
+  }
+  _xs=sym;row.classList.add('xopen');
+  const er=document.createElement('tr');er.id='x-'+sym;er.className='xrow';
+  er.innerHTML='<td colspan="7"><div class="xinn">'
+    // Price + score chart with period selector
+    +'<div class="xinn-chart">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+    +'<div class="xt" style="margin-bottom:0;">Price &amp; Divergence Score</div>'
+    +'<div style="display:flex;gap:0;border:1px solid var(--bd2);border-radius:var(--r2);overflow:hidden;">'
+    +'<button class="xperiod-btn active" data-sym="'+sym+'" data-p="30" onclick="setPChartPeriod(this)">1M</button>'
+    +'<button class="xperiod-btn" data-sym="'+sym+'" data-p="60" onclick="setPChartPeriod(this)">2M</button>'
+    +'<button class="xperiod-btn" data-sym="'+sym+'" data-p="90" onclick="setPChartPeriod(this)">3M</button>'
+    +'</div></div>'
+    +'<div class="pchart-wrap"><canvas class="pchart-cv" id="pc-'+sym+'"></canvas>'
+    +'<div class="pchart-tt" id="ptt-'+sym+'"></div></div></div>'
+    // FII/DII flow — full width, clean text
+    +'<div class="xmeta-card" style="margin-top:4px;background:var(--bg2);"><div class="xt">FII/DII Flow — Last 10 Days</div>'
+    +'<div class="fb-grid"><div id="fb-'+sym+'-a"></div><div id="fb-'+sym+'-b"></div></div></div>'
+    +'</div></td>';
+  row.insertAdjacentElement('afterend',er);
+  try{
+    const det=await req('/divergence/'+sym+'?days=90&window_days=20');
+    // Store full history on canvas for period switching
+    const pcv=document.getElementById('pc-'+sym);
+    if(pcv){pcv._prices=det.price_history||[];pcv._scores=det.score_history||[];}
+    drawPriceChart(sym,(det.price_history||[]).slice(-30),det.score_history||[]);
+    const fl=det.flow_history||[];
+    const fba=document.getElementById('fb-'+sym+'-a');
+    const fbb=document.getElementById('fb-'+sym+'-b');
+    if(!fl.length){
+      if(fba)fba.innerHTML='<div style="font-size:.75rem;color:var(--ink3);padding:8px 0;">No flow data yet.</div>';
+      return;
+    }
+    const last10=fl.slice(-10);
+    const mval=Math.max(...last10.map(f=>Math.max(Math.abs(f.fii_net||0),Math.abs(f.dii_net||0))))||1;
+    const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    function fbHtml(f){
+      const fv=f.fii_net||0,dv=f.dii_net||0;
+      const fp=Math.min(100,Math.abs(fv)/mval*100);
+      const dp=Math.min(100,Math.abs(dv)/mval*100);
+      const d=new Date(f.date);
+      const dlbl=d.getDate()+' '+MON[d.getMonth()];
+      return'<div style="padding:8px 0;border-bottom:1px solid var(--bd);">'
+        +'<div class="fbdate" style="margin:0 0 6px 0;border:none;padding:0;">'+dlbl+'</div>'
+        +'<div class="fbrow"><span class="fblbl">FII</span>'
+        +'<div class="fbtrk"><div class="'+(fv>=0?'fbpos':'fbneg')+'" style="width:'+fp.toFixed(1)+'%"></div></div>'
+        +'<span class="fbval" style="color:'+(fv>=0?'var(--teal)':'var(--red)')+';">'+(fv>=0?'+':'')+Math.round(fv).toLocaleString('en-IN')+' cr</span></div>'
+        +'<div class="fbrow" style="margin-bottom:0;"><span class="fblbl">DII</span>'
+        +'<div class="fbtrk"><div class="'+(dv>=0?'fbpos':'fbneg')+'" style="width:'+dp.toFixed(1)+'%"></div></div>'
+        +'<span class="fbval" style="color:'+(dv>=0?'var(--teal)':'var(--red)')+';">'+(dv>=0?'+':'')+Math.round(dv).toLocaleString('en-IN')+' cr</span></div>'
+        +'</div>';
+    }
+    if(fba)fba.innerHTML=last10.slice(0,5).map(fbHtml).join('');
+    if(fbb)fbb.innerHTML=last10.slice(5).map(fbHtml).join('');
+  }catch(e){
+    console.error('xp error:',e);
+  }
+}
+
+function setPChartPeriod(btn){
+  const sym=btn.dataset.sym;
+  const days=parseInt(btn.dataset.p);
+  btn.closest('div').querySelectorAll('.xperiod-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const cv=document.getElementById('pc-'+sym);
+  if(!cv||!cv._prices)return;
+  drawPriceChart(sym,cv._prices.slice(-days),cv._scores||[]);
+}
+
+/* ── Price + Divergence score overlay chart ──────────────────────────── */
+function drawPriceChart(sym,prices,scores){
+  const canvas=document.getElementById('pc-'+sym);
+  if(!canvas||!prices.length)return;
+  const wrap=canvas.parentElement;
+  const dpr=window.devicePixelRatio||1;
+  const W=wrap.clientWidth||600;
+  const H=wrap.clientHeight||240;
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const isDark=document.documentElement.getAttribute('data-theme')!=='light';
+  const bg=isDark?'#0d1117':'#ffffff';
+  const gridCol=isDark?'rgba(255,255,255,.055)':'rgba(0,0,0,.07)';
+  const textCol=isDark?'#555f6b':'#9aa5b0';
+  // Left axis = price (amber), Right axis = score (blue)
+  // Give generous padding on both sides for labels
+  const PAD={t:14,r:46,b:28,l:62};
+  const cW=W-PAD.l-PAD.r,cH=H-PAD.t-PAD.b;
+
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  // ── Build score alignment map ──────────────────────────────────────────────
+  const priceMap={};prices.forEach((p,i)=>priceMap[p.date]=i);
+  const aligned=scores.filter(s=>priceMap[s.date]!==undefined)
+                      .map(s=>({...s,xi:priceMap[s.date]}));
+  const hasScore=aligned.length>1;
+
+  // ── Scales ────────────────────────────────────────────────────────────────
+  const closes=prices.map(p=>p.close);
+  const pMin=Math.min(...closes),pMax=Math.max(...closes),pRng=pMax-pMin||1;
+  // Pad price range 3% top/bottom so line isn't flush with edges
+  const pLo=pMin-pRng*.03,pHi=pMax+pRng*.03,pRng2=pHi-pLo;
+  const xOf=i=>PAD.l+i/(prices.length-1||1)*cW;
+  const yP=v=>PAD.t+cH-(v-pLo)/pRng2*cH;
+
+  // Score: symmetric [-sRng, +sRng], midline = vertical centre
+  const sRng=hasScore?Math.max(Math.abs(Math.min(...aligned.map(s=>s.score))),
+                                Math.abs(Math.max(...aligned.map(s=>s.score))))||1:1;
+  const midY=PAD.t+cH/2;
+  const yS=v=>midY-(v/sRng)*(cH/2);
+
+  // ── Horizontal grid lines (price) ─────────────────────────────────────────
+  const pStep=niceStep(pRng2,5);
+  const pStart=Math.ceil(pLo/pStep)*pStep;
+  ctx.font=`500 9px 'DM Sans',sans-serif`;
+  for(let v=pStart;v<=pHi+pStep*.1;v+=pStep){
+    const y=yP(v);if(y<PAD.t-2||y>H-PAD.b+2)continue;
+    // Grid line
+    ctx.strokeStyle=gridCol;ctx.lineWidth=1;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+    ctx.setLineDash([]);
+    // Left label — price (amber)
+    ctx.fillStyle='rgba(210,153,34,.75)';ctx.textAlign='right';
+    const lbl=v>=1000?'₹'+(v/1000).toFixed(1)+'k':'₹'+v.toFixed(0);
+    ctx.fillText(lbl,PAD.l-5,y+3.5);
+  }
+
+  // ── Score zero line + score grid lines ────────────────────────────────────
+  if(hasScore){
+    // Zero line — prominent
+    ctx.strokeStyle=isDark?'rgba(255,255,255,.18)':'rgba(0,0,0,.18)';
+    ctx.lineWidth=1.2;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(PAD.l,midY);ctx.lineTo(W-PAD.r,midY);ctx.stroke();
+
+    // Score right-axis labels
+    ctx.fillStyle='rgba(56,139,253,.7)';ctx.textAlign='left';
+    const sLevels=[-1,-0.5,0,0.5,1];
+    sLevels.forEach(v=>{
+      const y=yS(v);
+      if(y<PAD.t||y>H-PAD.b)return;
+      ctx.fillText(v.toFixed(1),W-PAD.r+5,y+3.5);
+      // light horizontal tick
+      ctx.strokeStyle=isDark?'rgba(56,139,253,.08)':'rgba(56,139,253,.1)';
+      ctx.lineWidth=1;ctx.setLineDash([2,4]);
+      ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
+
+  // ── Axis spine lines ──────────────────────────────────────────────────────
+  ctx.strokeStyle=isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.1)';
+  ctx.lineWidth=1;ctx.setLineDash([]);
+  // Left spine
+  ctx.beginPath();ctx.moveTo(PAD.l,PAD.t);ctx.lineTo(PAD.l,H-PAD.b);ctx.stroke();
+  // Right spine
+  ctx.beginPath();ctx.moveTo(W-PAD.r,PAD.t);ctx.lineTo(W-PAD.r,H-PAD.b);ctx.stroke();
+
+  // ── Axis titles ───────────────────────────────────────────────────────────
+  ctx.font=`600 9px 'DM Sans',sans-serif`;
+  // Left title "Price (₹)" — rotated
+  ctx.save();ctx.translate(11,PAD.t+cH/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(210,153,34,.6)';ctx.textAlign='center';
+  ctx.fillText('Price (₹)',0,0);ctx.restore();
+  // Right title "Div. Score"
+  ctx.save();ctx.translate(W-10,PAD.t+cH/2);ctx.rotate(Math.PI/2);
+  ctx.fillStyle='rgba(56,139,253,.6)';ctx.textAlign='center';
+  ctx.fillText('Div. Score',0,0);ctx.restore();
+
+  // ── Price area fill ───────────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(xOf(0),H-PAD.b);
+  prices.forEach((p,i)=>ctx.lineTo(xOf(i),yP(p.close)));
+  ctx.lineTo(xOf(prices.length-1),H-PAD.b);
+  ctx.closePath();
+  ctx.fillStyle=isDark?'rgba(210,153,34,.07)':'rgba(210,153,34,.05)';
+  ctx.fill();
+
+  // ── Price line ────────────────────────────────────────────────────────────
+  ctx.strokeStyle='rgba(210,153,34,.9)';ctx.lineWidth=1.8;
+  ctx.lineJoin='round';ctx.setLineDash([]);
+  ctx.beginPath();
+  prices.forEach((p,i)=>i===0?ctx.moveTo(xOf(i),yP(p.close)):ctx.lineTo(xOf(i),yP(p.close)));
+  ctx.stroke();
+
+  // ── Score line ────────────────────────────────────────────────────────────
+  if(hasScore){
+    ctx.strokeStyle='rgba(56,139,253,.85)';ctx.lineWidth=1.6;
+    ctx.lineJoin='round';ctx.setLineDash([]);
+    ctx.beginPath();
+    aligned.forEach((s,i)=>{
+      const x=xOf(s.xi),y=yS(s.score);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+
+  // ── X axis date labels ────────────────────────────────────────────────────
+  const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  ctx.fillStyle=textCol;ctx.font=`400 9px 'DM Sans',sans-serif`;ctx.textAlign='center';
+  const skip=Math.ceil(prices.length/8);
+  prices.forEach((p,i)=>{
+    if(i%skip!==0&&i!==prices.length-1)return;
+    const d=new Date(p.date);
+    const lbl=d.getDate()+' '+MON[d.getMonth()];
+    ctx.fillText(lbl,xOf(i),H-PAD.b+14);
+  });
+
+  // ── Tooltip ───────────────────────────────────────────────────────────────
+  const tt=document.getElementById('ptt-'+sym);
+  canvas.onmousemove=function(e){
+    const rect=canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left-PAD.l;
+    const idx=Math.max(0,Math.min(prices.length-1,Math.round(mx/cW*(prices.length-1))));
+    if(mx<0||mx>cW){tt.style.display='none';return;}
+    const p=prices[idx];
+    const sc_entry=aligned.find(s=>s.xi===idx);
+    const scStr=sc_entry?sc_entry.score.toFixed(3):'—';
+    const scCol=sc_entry?(sc_entry.score>=0?'var(--teal)':'var(--red)'):'var(--ink3)';
+    tt.innerHTML=`<strong>${p.date}</strong>&nbsp;&nbsp;`
+      +`<span style="color:rgba(210,153,34,.9);">₹${p.close.toFixed(2)}</span>`
+      +`&nbsp;&nbsp;<span style="color:${scCol};">score ${scStr}</span>`;
+    tt.style.display='block';
+    tt.style.left=Math.min(e.clientX-rect.left+10,W-180)+'px';
+    tt.style.top=Math.max(2,e.clientY-rect.top-38)+'px';
+  };
+  canvas.onmouseleave=function(){tt.style.display='none';};
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SECTOR HEATMAP — Squarified Treemap
+   ─────────────────────────────────────────────────────────────────────
+   Area of each tile is exactly proportional to stock_count.
+   Uses the squarify algorithm: repeatedly lay strips along the shorter
+   side, adding items to a strip while the worst aspect ratio improves.
+   No grid, no rounding, no empty cells, no horizontal strips.
+
+   Colour scale (relative to data range):
+     All-negative: worst → deep red, best → light rose
+     All-positive: worst → light teal, best → dark teal
+     Mixed: most-negative → deep red, zero → mid, most-positive → dark teal
+   ══════════════════════════════════════════════════════════════════════ */
+let _hmData=null,_hmSort='size',_hmColor='rel',_hmPeriod='today',_hmView='divergence',_hmInk='sign';
+
+function setHmSort(m){
+  _hmSort=m;
+  document.getElementById('hm-sort-size').classList.toggle('active',m==='size');
+  document.getElementById('hm-sort-score').classList.toggle('active',m==='score');
+  if(_hmData)renderHeat(_hmData);
+}
+function setHmColor(m){
+  _hmColor=m;
+  document.getElementById('hm-color-rel').classList.toggle('active',m==='rel');
+  document.getElementById('hm-color-abs').classList.toggle('active',m==='abs');
+  if(_hmData)renderHeat(_hmData);
+}
+function setHmView(m){
+  _hmView=m;
+  document.getElementById('hm-view-div').classList.toggle('active',m==='divergence');
+  document.getElementById('hm-view-pct').classList.toggle('active',m==='pct');
+  if(_hmData)renderHeat(_hmData);
+}
+function setHmInk(m){
+  _hmInk=m;
+  document.getElementById('hm-ink-sign').style.borderColor=m==='sign'?'var(--blue2)':'transparent';
+  document.getElementById('hm-ink-lum').style.borderColor=m==='lum'?'var(--blue2)':'transparent';
+  if(_hmData)renderHeat(_hmData);
+}
+function setHmPeriod(p,btn){
+  _hmPeriod=p;
+  document.querySelectorAll('.hm-period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  _hmData=null;
+  lHeat();
+}
+
+async function lHeat(){
+  const wrap=document.getElementById('heatmap-wrap');
+  wrap.innerHTML='<div class="empty"><div class="ei">⏳</div>Loading…</div>';
+  try{
+    _hmData=await req('/divergence/sectors?period='+_hmPeriod);
+    if(!_hmData||!_hmData.length){
+      wrap.innerHTML='<div class="empty"><div class="ei">📭</div>Run the pipeline first.</div>';
+      return;
+    }
+    const asof=_hmData[0]&&_hmData[0].as_of?_hmData[0].as_of:'';
+    const asofEl=document.getElementById('hm-asof');
+    if(asofEl)asofEl.textContent=asof?'as of '+asof:'';
+    renderHeat(_hmData);
+  }catch(e){
+    wrap.innerHTML='<div class="empty"><div class="ei">⚠️</div>'+esc(e.message)+'</div>';
+  }
+}
+
+/* ── Colour helpers ──────────────────────────────────────────────────── */
+function lerpRgb(r1,g1,b1,r2,g2,b2,t){
+  t=Math.max(0,Math.min(1,t));
+  return[Math.round(r1+t*(r2-r1)),Math.round(g1+t*(g2-g1)),Math.round(b1+t*(b2-b1))];
+}
+/* absMode=false (Rel): colour range spans data min→max (existing behaviour).
+   absMode=true  (Abs): colour range is fixed to [-1,+1], so scores are
+   anchored to their true intensity — -0.3 always looks mild, -0.9 always dark. */
+function makeHmColor(scores, absMode){
+  const RD=[200,30,20],RL=[240,160,155];   // dark red → light red  (negative)
+  const GL=[150,220,150],GD=[30,160,60];   // light green → dark green (positive)
+  const dataMn=Math.min(...scores),dataMx=Math.max(...scores);
+  const allNeg=dataMx<=0,allPos=dataMn>=0;
+  return function(score){
+    let rgb;
+    if(allNeg){
+      // negative-only data: light rose (near 0) → dark red (most negative)
+      // Rel: span data range; Abs: anchor to -1 so mild negatives look mild
+      const lo=absMode?-1:dataMn;
+      const hi=absMode?Math.min(0,dataMx):dataMx; // hi = zero or closest-to-zero value
+      const safeHi=hi===lo?lo-0.001:hi;
+      const t=Math.max(0,Math.min(1,(score-safeHi)/(lo-safeHi)));
+      rgb=lerpRgb(RL[0],RL[1],RL[2],RD[0],RD[1],RD[2],t);
+    }else if(allPos){
+      // positive-only data: light teal (near 0) → dark teal (most positive)
+      // Rel: span data range; Abs: anchor to +1 so mild positives look mild
+      const lo=absMode?Math.max(0,dataMn):dataMn;
+      const hi=absMode?1:dataMx;
+      const safeLo=lo===hi?lo-0.001:lo;
+      const t=Math.max(0,Math.min(1,(score-safeLo)/(hi-safeLo)));
+      rgb=lerpRgb(GL[0],GL[1],GL[2],GD[0],GD[1],GD[2],t);
+    }else{
+      // mixed: negative side uses red scale, positive uses teal scale
+      // Rel: each half spans its own data range; Abs: each half spans [0,±1]
+      if(score<=0){
+        const lo=absMode?-1:dataMn,hi=0;
+        const t=lo===hi?1:Math.max(0,Math.min(1,(score-hi)/(lo-hi)));
+        rgb=lerpRgb(RL[0],RL[1],RL[2],RD[0],RD[1],RD[2],t);
+      }else{
+        const lo=0,hi=absMode?1:dataMx;
+        const t=lo===hi?1:Math.max(0,Math.min(1,(score-lo)/(hi-lo)));
+        rgb=lerpRgb(GL[0],GL[1],GL[2],GD[0],GD[1],GD[2],t);
+      }
+    }
+    return`rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+  };
+}
+
+/* ── Squarify treemap ────────────────────────────────────────────────── */
+/* items: [{val, ...data}] — val is the weight (stock_count).
+   Returns [{...data, x, y, w, h}] with pixel coords.
+   x,y,w,h are floats — subpixel precision matters for gap-free tiling. */
+function squarify(items, x, y, w, h){
+  if(!items.length)return[];
+  const total=items.reduce((s,d)=>s+d.val,0);
+  if(total===0)return[];
+
+  const results=[];
+  let rem=[...items];
+  let rx=x,ry=y,rw=w,rh=h;
+
+  while(rem.length){
+    const short=Math.min(rw,rh);
+    const totalRem=rem.reduce((s,d)=>s+d.val,0);
+
+    // Build current strip: keep adding items while worst aspect improves
+    let strip=[],stripSum=0,worstBefore=Infinity;
+    let i=0;
+    for(;i<rem.length;i++){
+      const item=rem[i];
+      const newSum=stripSum+item.val;
+      // area of strip in this layout
+      const stripArea=(newSum/totalRem)*(rw*rh);
+      const stripLen=stripArea/short;
+      // worst aspect in proposed strip
+      let worstNow=0;
+      [...strip,item].forEach(d=>{
+        const dLen=d.val/newSum*short;
+        const aspect=Math.max(stripLen/dLen,dLen/stripLen);
+        if(aspect>worstNow)worstNow=aspect;
+      });
+      if(i>0&&worstNow>worstBefore)break; // adding this item made things worse
+      strip.push(item);stripSum=newSum;worstBefore=worstNow;
+    }
+    rem=rem.slice(strip.length);
+
+    // Lay out the strip
+    const stripArea=(stripSum/totalRem)*(rw*rh);
+    const stripDepth=stripArea/short; // thickness of the strip
+    const isHoriz=rw>=rh; // lay strip along the longer side
+
+    let cx=rx,cy=ry;
+    strip.forEach((d,si)=>{
+      const frac=d.val/stripSum;
+      const isLast=si===strip.length-1;
+      let tw,th;
+      if(isHoriz){
+        // strip runs top-to-bottom (vertical strip of width=stripDepth)
+        tw=isLast?(rx+stripDepth-cx):stripDepth*frac; // NOTE: strip is along x axis
+        // Wait — rethink: isHoriz means rw>=rh, so we cut vertically (depth along x)
+        // items stack vertically within the strip
+        th=isLast?(ry+short-cy):short*frac;
+        tw=stripDepth;
+      }else{
+        // strip runs left-to-right (horizontal strip of height=stripDepth)
+        tw=isLast?(rx+short-cx):short*frac;
+        th=stripDepth;
+      }
+      results.push({...d,x:cx,y:cy,w:isHoriz?tw:tw,h:isHoriz?th:th});
+      if(isHoriz)cy+=th; else cx+=tw;
+    });
+
+    // Shrink the remaining rectangle
+    if(isHoriz){rx+=stripDepth;rw-=stripDepth;}
+    else{ry+=stripDepth;rh-=stripDepth;}
+
+    // Guard against degenerate zero-size remainder
+    if(rw<0.5||rh<0.5)break;
+  }
+  return results;
+}
+
+function renderHeat(data){
+  const wrap=document.getElementById('heatmap-wrap');
+  const GAP=1;
+  const W=wrap.clientWidth||window.innerWidth-48;
+  const H=Math.round(W*0.52);
+  wrap.style.height=H+'px';
+
+  const isPct=_hmView==='pct';
+  const colorSource=isPct?data.map(d=>d.price_change_pct||0):data.map(d=>d.avg_score||0);
+  const hmColor=makeHmColor(colorSource,_hmColor==='abs');
+  const totalStocks=data.reduce((s,d)=>s+(d.stock_count||1),0);
+
+  let ordered=_hmSort==='score'
+    ?[...data].sort((a,b)=>Math.abs(b.avg_score||0)-Math.abs(a.avg_score||0))
+    :[...data].sort((a,b)=>(b.stock_count||1)-(a.stock_count||1));
+
+  const items=ordered.map(d=>({...d,val:d.stock_count||1}));
+  const raw=squarify(items,0,0,W,H);
+  const tiles=raw.map(t=>({...t,px:t.x+GAP/2,py:t.y+GAP/2,pw:Math.max(1,t.w-GAP),ph:Math.max(1,t.h-GAP)}));
+
+  wrap.innerHTML=tiles.map(p=>{
+    const score=p.avg_score||0;
+    const pct=p.price_change_pct;
+    const colorVal=isPct?(pct||0):score;
+    const bg=hmColor(colorVal);
+    const [tr,tg,tb]=bg.match(/\d+/g).map(Number);
+    const lum=(0.299*tr+0.587*tg+0.114*tb)/255;
+    const ink=_hmInk==='lum'?(lum<0.55?'#fff':'rgba(10,20,10,.85)'):(colorVal>=0?'#fff':'rgba(20,0,0,.85)');
+    const inkSub=_hmInk==='lum'?(lum<0.55?'rgba(255,255,255,.80)':'rgba(10,20,10,.55)'):(colorVal>=0?'rgba(255,255,255,.82)':'rgba(20,0,0,.55)');
+    const tw=p.pw,th=p.ph;
+    const minSide=Math.min(tw,th);
+    const bigNumSize=Math.max(10,Math.min(36,minSide*.20))+'px';
+    const nameSize=Math.max(8,Math.min(14,minSide*.092))+'px';
+    const countSize=Math.max(7,Math.min(10,minSide*.062))+'px';
+    const showName=tw>56&&th>40;
+    const showCount=tw>100&&th>64;
+    const showSub=tw>80&&th>56;
+    const pctStr=pct!=null?(pct>=0?'+':'')+pct.toFixed(1)+'%':'';
+    const scoreStr=score.toFixed(2);
+    const bigNum=isPct?pctStr:scoreStr;
+    const subNum=isPct?scoreStr:pctStr;
+    const safeSec=(p.sector||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+    return`<div class="stile" style="left:${p.px.toFixed(1)}px;top:${p.py.toFixed(1)}px;width:${tw.toFixed(1)}px;height:${th.toFixed(1)}px;background:${bg};"
+      onclick="openDrill('${safeSec}')">
+      <div class="stile-inner">
+        ${showName?`<div class="stname" style="color:${ink};font-size:${nameSize};">${p.sector}</div>`:''}
+        <div class="stscore" style="color:${ink};font-size:${bigNumSize};">${bigNum}</div>
+        ${showSub&&subNum?`<div class="stpct" style="color:${inkSub};">${subNum}</div>`:''}
+        ${showCount?`<div class="stcount" style="color:${ink};font-size:${countSize};">${p.stock_count} stocks</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Sector drill-down ───────────────────────────────────────────────── */
+async function openDrill(sec){
+  const panel=document.getElementById('hm-drill');
+  const bg=document.getElementById('hm-drill-bg');
+  const body=document.getElementById('drill-body');
+  const title=document.getElementById('drill-title');
+  title.textContent=sec;
+  body.innerHTML='<div class="empty"><div class="ei">⏳</div>Loading…</div>';
+  panel.classList.add('on');bg.classList.add('on');
+  try{
+    const stocks=await req('/divergence/sector-stocks?sector='+encodeURIComponent(sec)+'&period='+_hmPeriod);
+    if(!stocks||!stocks.length){
+      body.innerHTML='<div class="empty">No data for this sector.</div>';return;
+    }
+    const headers=`<div class="drill-row" style="background:transparent;border:none;padding:4px 10px;margin-bottom:2px;">
+      <div class="drill-sym" style="color:var(--ink3);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Symbol</div>
+      <div class="drill-co" style="color:var(--ink3);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Company</div>
+      <div class="drill-score" style="color:var(--ink3);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Score</div>
+      <div class="drill-pct" style="color:var(--ink3);font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;">% Chg</div>
+    </div>`;
+    body.innerHTML=headers+stocks.map(s=>{
+      const score=s.avg_score!=null?s.avg_score.toFixed(3):'-';
+      const sCol=s.avg_score==null?'var(--ink2)':s.avg_score>=0?'var(--teal)':'var(--red)';
+      const pct=s.price_change_pct;
+      const pctStr=pct!=null?(pct>=0?'+':'')+pct.toFixed(2)+'%':'-';
+      const pCtCol=pct==null?'var(--ink2)':pct>=0?'var(--teal)':'var(--red)';
+      return`<div class="drill-row">
+        <div class="drill-sym">${esc(s.symbol)}</div>
+        <div class="drill-co">${s.company_name||''}</div>
+        <div class="drill-score" style="color:${sCol};">${score}</div>
+        <div class="drill-pct" style="color:${pCtCol};">${pctStr}</div>
+        ${s.is_flagged?'<div class="drill-flag">FLAG</div>':''}
+      </div>`;
+    }).join('');
+  }catch(e){
+    body.innerHTML='<div class="empty"><div class="ei">⚠️</div>'+esc(e.message)+'</div>';
+  }
+}
+function closeDrill(){
+  document.getElementById('hm-drill').classList.remove('on');
+  document.getElementById('hm-drill-bg').classList.remove('on');
+}
+
+function goSec(sec){
+  sw('divergence',document.querySelectorAll('.ntab')[0]);
+  document.getElementById('dsec').value=sec;fDiv();
+}
+window.addEventListener('resize',()=>{
+  if(document.getElementById('p-heatmap').classList.contains('on')&&_hmData)renderHeat(_hmData);
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   FII/DII FLOW CHART
+   ──────────────────────────────────────────────────────────────────────
+   Bars: paired FII/DII bars with gradient fills. Vertical grid lines.
+   Lines: FII (blue area), DII (teal area), Nifty (amber dashed).
+          Area fills above/below zero. Crosshair on hover.
+          Clean round-number axes. Compact TradingView-style tooltip.
+   ══════════════════════════════════════════════════════════════════════ */
+let _flowRaw=null,_flowPeriod='weekly',_flowMode='bars';
+let _seriesFii=true,_seriesDii=true,_seriesNifty=true;
+let _crosshairX=null,_crosshairY=null;
+let _fillOpacity=0.12,_niftyStyle='dashed';
+
+function setFlowPeriod(p,btn){
+  _flowPeriod=p;
+  document.querySelectorAll('.flow-seg-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFlow();
+}
+
+function setFlowMode(m,btn){
+  _flowMode=m;
+  document.querySelectorAll('.flow-mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const hasFill=m==='lines'||m==='cumulative';
+  const hasLines=m!=='bars';
+  document.getElementById('flow-series').classList.toggle('on',hasLines);
+  document.getElementById('flow-bar-legend').style.display=m==='bars'?'flex':'none';
+  const opEl=document.getElementById('flow-opacity');
+  if(opEl)opEl.style.display=hasFill?'flex':'none';
+  renderFlow();
+}
+
+function toggleSeries(s){
+  if(s==='fii')_seriesFii=!_seriesFii;
+  else if(s==='dii')_seriesDii=!_seriesDii;
+  else _seriesNifty=!_seriesNifty;
+  document.getElementById('pill-'+s).classList.toggle('active',
+    s==='fii'?_seriesFii:s==='dii'?_seriesDii:_seriesNifty);
+  renderFlow();
+}
+
+function setFillOpacity(v){
+  _fillOpacity=parseFloat(v)/100;
+  document.getElementById('opacity-val').textContent=v+'%';
+  renderFlow();
+}
+
+function setNiftyStyle(s){
+  _niftyStyle=s;
+  document.querySelectorAll('.nifty-style-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('nstyle-'+s).classList.add('active');
+  renderFlow();
+}
+
+async function lFlows(){
+  if(_flowRaw){renderFlow();return;}
+  try{
+    _flowRaw=await req('/flows/all');
+    document.getElementById('flow-loading').style.display='none';
+    document.getElementById('flow-canvas').style.display='block';
+    renderFlow();
+  }catch(e){
+    document.getElementById('flow-loading').innerHTML=
+      '<div class="empty"><div class="ei">⚠️</div>Could not load flow data.</div>';
+  }
+}
+
+function aggregateFlows(raw,period){
+  if(period==='daily')return raw.map(r=>({
+    label:r.trade_date,fii:r.fii_net||0,dii:r.dii_net||0,nifty:r.nifty_close||null
+  }));
+  const buckets={};
+  raw.forEach(r=>{
+    const d=new Date(r.trade_date);let key;
+    if(period==='weekly'){
+      const dow=d.getDay();const mon=new Date(d);
+      mon.setDate(d.getDate()-(dow===0?6:dow-1));key=mon.toISOString().slice(0,10);
+    }else key=r.trade_date.slice(0,7);
+    if(!buckets[key])buckets[key]={label:key,fii:0,dii:0,nifty:null};
+    buckets[key].fii+=r.fii_net||0;
+    buckets[key].dii+=r.dii_net||0;
+    if(r.nifty_close!=null)buckets[key].nifty=r.nifty_close;
+  });
+  return Object.values(buckets).sort((a,b)=>a.label.localeCompare(b.label));
+}
+
+/* ── Canvas setup ────────────────────────────────────────────────────── */
+function setupCanvas(){
+  const canvas=document.getElementById('flow-canvas');
+  const wrap=document.getElementById('flow-canvas-wrap');
+  if(!canvas||!wrap)return null;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=wrap.clientWidth*dpr;canvas.height=wrap.clientHeight*dpr;
+  canvas.style.width=wrap.clientWidth+'px';canvas.style.height=wrap.clientHeight+'px';
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  return{ctx,W:wrap.clientWidth,H:wrap.clientHeight,wrap};
+}
+
+/* ── Nice round axis step ────────────────────────────────────────────── */
+function niceStep(range,ticks){
+  const raw=range/ticks;
+  const mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const norm=raw/mag;
+  let step;
+  if(norm<=1)step=1;
+  else if(norm<=2)step=2;
+  else if(norm<=2.5)step=2.5;
+  else if(norm<=5)step=5;
+  else step=10;
+  return step*mag;
+}
+
+/* ── Format crore values ─────────────────────────────────────────────── */
+function fmtCr(v){
+  const a=Math.abs(v);
+  if(a===0)return'0';
+  if(a>=10000)return(v/10000).toFixed(0)+'k';
+  if(a>=1000)return v.toFixed(0);
+  return v.toFixed(0);
+}
+function fmtCrFull(v){
+  return(v>=0?'+':'')+Math.round(v).toLocaleString('en-IN')+'cr';
+}
+function fmtNifty(v){
+  return'₹'+Math.round(v).toLocaleString('en-IN');
+}
+
+/* ── X label + tick selection ────────────────────────────────────────── */
+const MON_SHORT=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function fmtDateLabel(label,showYear){
+  // label is YYYY-MM-DD or YYYY-MM
+  const yr=label.slice(0,4);
+  const mo=parseInt(label.slice(5,7),10)-1;
+  if(_flowPeriod==='monthly'){
+    return showYear?(MON_SHORT[mo]+' '+yr):MON_SHORT[mo];
+  }
+  const day=parseInt(label.slice(8,10),10);
+  return showYear?(day+' '+MON_SHORT[mo]+' '+yr):(day+' '+MON_SHORT[mo]);
+}
+
+/* Returns array of indices that should get an x-axis label.
+   Daily   → every Monday (dow===1)
+   Weekly  → every 4th data point (≈monthly)
+   Monthly → every data point, year shown on January */
+function xTickIndices(data){
+  const indices=[];
+  if(_flowPeriod==='daily'){
+    // Tick every ~5 data points (≈weekly) regardless of day-of-week, so holidays don't cause gaps
+    const step=Math.max(1,Math.round(data.length/12));
+    data.forEach((d,i)=>{if(i%step===0)indices.push(i);});
+    // always include last
+    if(!indices.includes(data.length-1))indices.push(data.length-1);
+  }else if(_flowPeriod==='weekly'){
+    data.forEach((d,i)=>{if(i%4===0)indices.push(i);});
+  }else{
+    data.forEach((d,i)=>indices.push(i));
+  }
+  return indices;
+}
+
+function shouldShowYear(d,i,data){
+  const yr=d.label.slice(0,4);
+  if(i===0)return true;
+  // find previous tick index
+  const ticks=xTickIndices(data);
+  const pos=ticks.indexOf(i);
+  if(pos<=0)return false;
+  const prevIdx=ticks[pos-1];
+  return data[prevIdx].label.slice(0,4)!==yr;
+}
+
+/* ── Draw grid (shared) ──────────────────────────────────────────────── */
+function drawGrid(ctx,W,H,PAD,isDark,midY,vmax,data,xOf){
+  ctx.fillStyle=isDark?'#0d1117':'#ffffff';
+  ctx.fillRect(0,0,W,H);
+
+  const chartH=H-PAD.t-PAD.b;
+  const chartW=W-PAD.l-PAD.r;
+  const textCol=isDark?'#484f58':'#aab4c0';
+  const gridCol=isDark?'rgba(255,255,255,.045)':'rgba(0,0,0,.06)';
+  const zeroCol=isDark?'rgba(255,255,255,.22)':'rgba(0,0,0,.22)';
+
+  // Vertical grid lines at x-axis ticks
+  if(data&&xOf){
+    const ticks=xTickIndices(data);
+    ctx.strokeStyle=gridCol;ctx.lineWidth=1;ctx.setLineDash([]);
+    ticks.forEach(i=>{
+      const x=xOf(i);
+      ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,H-PAD.b);ctx.stroke();
+    });
+  }
+
+  // Horizontal grid lines at nice round intervals
+  const step=niceStep(vmax,4);
+  const ticks=[];
+  for(let v=step;v<=vmax*1.01;v+=step)ticks.push(v);
+
+  ctx.font=`500 9.5px 'DM Sans',sans-serif`;
+  ticks.forEach(v=>{
+    const yP=midY-(v/vmax)*(chartH/2);
+    const yN=midY+(v/vmax)*(chartH/2);
+    ctx.strokeStyle=gridCol;ctx.lineWidth=1;ctx.setLineDash([3,5]);
+    ctx.beginPath();ctx.moveTo(PAD.l,yP);ctx.lineTo(W-PAD.r,yP);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(PAD.l,yN);ctx.lineTo(W-PAD.r,yN);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=textCol;ctx.textAlign='right';
+    ctx.fillText(fmtCr(v),PAD.l-5,yP+3.5);
+    ctx.fillText(fmtCr(-v),PAD.l-5,yN+3.5);
+  });
+  // zero label
+  ctx.fillStyle=textCol;ctx.textAlign='right';
+  ctx.fillText('0',PAD.l-5,midY+3.5);
+
+  // Zero line — prominent
+  ctx.strokeStyle=zeroCol;ctx.lineWidth=1.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(PAD.l,midY);ctx.lineTo(W-PAD.r,midY);ctx.stroke();
+
+  return{textCol,step,ticks};
+}
+
+/* ── Crosshair ───────────────────────────────────────────────────────── */
+function drawCrosshair(ctx,x,y,W,H,PAD,isDark){
+  if(x==null)return;
+  const col=isDark?'rgba(255,255,255,.25)':'rgba(0,0,0,.2)';
+  ctx.save();
+  ctx.strokeStyle=col;ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  // vertical
+  ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,H-PAD.b);ctx.stroke();
+  // horizontal
+  if(y!=null){ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();}
+  ctx.setLineDash([]);ctx.restore();
+}
+
+/* ── BAR RENDER ──────────────────────────────────────────────────────── */
+function renderBars(data,ctx,W,H,PAD,isDark){
+  const chartW=W-PAD.l-PAD.r,chartH=H-PAD.t-PAD.b;
+  const midY=PAD.t+chartH/2;
+  const allVals=[...data.map(d=>d.fii),...data.map(d=>d.dii)];
+  const vmax=Math.max(...allVals.map(Math.abs))||1;
+  const slotW=chartW/data.length;
+  const xOf=i=>PAD.l+i*slotW+slotW/2;
+
+  const{textCol}=drawGrid(ctx,W,H,PAD,isDark,midY,vmax,data,xOf);
+
+  const barW=Math.max(1,Math.min(slotW*0.42,20));
+
+  data.forEach((d,i)=>{
+    const cx=xOf(i);
+
+    // FII bar with gradient
+    const fh=Math.abs(d.fii)/vmax*(chartH/2);
+    const fPos=d.fii>=0;
+    const fGrad=ctx.createLinearGradient(0,fPos?midY-fh:midY,0,fPos?midY:midY+fh);
+    if(fPos){
+      fGrad.addColorStop(0,'rgba(56,139,253,.9)');
+      fGrad.addColorStop(1,'rgba(56,139,253,.2)');
+    }else{
+      fGrad.addColorStop(0,'rgba(248,81,73,.2)');
+      fGrad.addColorStop(1,'rgba(248,81,73,.85)');
+    }
+    ctx.fillStyle=fGrad;
+    fPos?ctx.fillRect(cx-barW-0.5,midY-fh,barW,fh):ctx.fillRect(cx-barW-0.5,midY,barW,fh);
+
+    // DII bar with gradient
+    const dh=Math.abs(d.dii)/vmax*(chartH/2);
+    const dPos=d.dii>=0;
+    const dGrad=ctx.createLinearGradient(0,dPos?midY-dh:midY,0,dPos?midY:midY+dh);
+    if(dPos){
+      dGrad.addColorStop(0,'rgba(21,184,159,.85)');
+      dGrad.addColorStop(1,'rgba(21,184,159,.18)');
+    }else{
+      dGrad.addColorStop(0,'rgba(248,81,73,.18)');
+      dGrad.addColorStop(1,'rgba(248,81,73,.55)');
+    }
+    ctx.fillStyle=dGrad;
+    dPos?ctx.fillRect(cx+0.5,midY-dh,barW,dh):ctx.fillRect(cx+0.5,midY,barW,dh);
+  });
+
+  // Crosshair
+  drawCrosshair(ctx,_crosshairX,_crosshairY,W,H,PAD,isDark);
+
+  // X-axis labels
+  const ticks=xTickIndices(data);
+  ctx.fillStyle=textCol;
+  ctx.font=`400 9px 'DM Sans',sans-serif`;ctx.textAlign='center';
+  ticks.forEach(i=>{
+    const showYr=shouldShowYear(data[i],i,data);
+    ctx.fillText(fmtDateLabel(data[i].label,showYr),xOf(i),H-PAD.b+13);
+  });
+
+  return{slotW,vmax,midY,chartH,xOf};
+}
+
+/* ── LINE RENDER ─────────────────────────────────────────────────────── */
+function renderLines(data,ctx,W,H,PAD,isDark){
+  const chartW=W-PAD.l-PAD.r,chartH=H-PAD.t-PAD.b;
+  const flowVals=[
+    ...(_seriesFii?data.map(d=>d.fii):[]),
+    ...(_seriesDii?data.map(d=>d.dii):[])
+  ];
+  const vmax=flowVals.length?Math.max(...flowVals.map(Math.abs))||1:1;
+  const midY=PAD.t+chartH/2;
+  const xOf=i=>PAD.l+i/(data.length-1||1)*chartW;
+  const yFlow=v=>midY-(v/vmax)*(chartH/2);
+
+  drawGrid(ctx,W,H,PAD,isDark,midY,vmax,data,xOf);
+
+  // Nifty secondary axis
+  const niftyVals=data.map(d=>d.nifty).filter(v=>v!=null);
+  const nMin=niftyVals.length?Math.min(...niftyVals):0;
+  const nMax=niftyVals.length?Math.max(...niftyVals):1;
+  // pad nifty range 5% top and bottom
+  const nPad=(nMax-nMin)*0.05||100;
+  const nLo=nMin-nPad,nHi=nMax+nPad,nRange=nHi-nLo;
+  const yNifty=v=>PAD.t+chartH-(v-nLo)/nRange*chartH;
+
+  // Right axis labels for Nifty — nice round steps
+  if(_seriesNifty&&niftyVals.length){
+    const nStep=niceStep(nMax-nMin,5);
+    const nStart=Math.ceil(nMin/nStep)*nStep;
+    ctx.fillStyle='rgba(210,153,34,.7)';
+    ctx.font=`500 9px 'DM Sans',sans-serif`;ctx.textAlign='left';
+    for(let v=nStart;v<=nMax+nStep*0.1;v+=nStep){
+      ctx.fillText(fmtNifty(v),W-PAD.r+4,yNifty(v)+3.5);
+    }
+  }
+
+  // Area fill helper
+  function drawArea(pts,lineColor,fillColorPos,fillColorNeg,zero){
+    const valid=pts.filter(p=>p.y!=null);if(valid.length<2)return;
+    // Line
+    ctx.strokeStyle=lineColor;ctx.lineWidth=1.8;ctx.setLineDash([]);
+    ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();
+    let started=false;
+    pts.forEach(p=>{
+      if(p.y==null){started=false;return;}
+      started?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);
+      started=true;
+    });
+    ctx.stroke();
+
+    // Area — fill above zero (positive) and below zero (negative) separately
+    // Positive fill
+    ctx.beginPath();
+    ctx.moveTo(valid[0].x,zero);
+    valid.forEach(p=>ctx.lineTo(p.x,Math.min(p.y,zero)));
+    ctx.lineTo(valid[valid.length-1].x,zero);
+    ctx.closePath();
+    ctx.fillStyle=fillColorPos;ctx.fill();
+
+    // Negative fill
+    ctx.beginPath();
+    ctx.moveTo(valid[0].x,zero);
+    valid.forEach(p=>ctx.lineTo(p.x,Math.max(p.y,zero)));
+    ctx.lineTo(valid[valid.length-1].x,zero);
+    ctx.closePath();
+    ctx.fillStyle=fillColorNeg;ctx.fill();
+  }
+
+  if(_seriesFii)drawArea(
+    data.map((d,i)=>({x:xOf(i),y:yFlow(d.fii)})),
+    'rgba(56,139,253,.95)',
+    `rgba(56,139,253,${_fillOpacity})`,
+    `rgba(248,81,73,${_fillOpacity})`,
+    midY
+  );
+  if(_seriesDii)drawArea(
+    data.map((d,i)=>({x:xOf(i),y:yFlow(d.dii)})),
+    'rgba(21,184,159,.9)',
+    `rgba(21,184,159,${_fillOpacity})`,
+    `rgba(248,81,73,${(_fillOpacity*0.7).toFixed(2)})`,
+    midY
+  );
+
+  // Nifty — configurable line style, no area fill
+  if(_seriesNifty){
+    const niftyDash=_niftyStyle==='dashed'?[5,4]:_niftyStyle==='dotted'?[2,3]:[];
+    ctx.strokeStyle='rgba(210,153,34,.9)';ctx.lineWidth=1.5;ctx.setLineDash(niftyDash);
+    ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();
+    let started=false;
+    data.forEach((d,i)=>{
+      if(d.nifty==null){started=false;return;}
+      const x=xOf(i),y=yNifty(d.nifty);
+      started?ctx.lineTo(x,y):ctx.moveTo(x,y);
+      started=true;
+    });
+    ctx.stroke();ctx.setLineDash([]);
+  }
+
+  // Crosshair
+  drawCrosshair(ctx,_crosshairX,_crosshairY,W,H,PAD,isDark);
+
+  // X-axis labels
+  const ticks=xTickIndices(data);
+  ctx.fillStyle=isDark?'#484f58':'#aab4c0';
+  ctx.font=`400 9px 'DM Sans',sans-serif`;ctx.textAlign='center';
+  ticks.forEach(i=>{
+    const showYr=shouldShowYear(data[i],i,data);
+    ctx.fillText(fmtDateLabel(data[i].label,showYr),xOf(i),H-PAD.b+13);
+  });
+
+  return{slotW:chartW/(data.length-1||1),vmax,midY,chartH,nMin:nLo,nRange,xOf};
+}
+
+/* ── CUMULATIVE RENDER ───────────────────────────────────────────────── */
+/* Shows running totals of FII net and DII net from the start of the
+   visible data. Positive slope = sustained buying pressure.
+   Negative slope = sustained selling. The gap between the two lines
+   is the cumulative divergence — the core signal of this project.    */
+function renderCumulative(data,ctx,W,H,PAD,isDark){
+  const chartW=W-PAD.l-PAD.r,chartH=H-PAD.t-PAD.b;
+
+  // Build cumulative series
+  let fiiSum=0,diiSum=0;
+  const cumFii=[],cumDii=[];
+  data.forEach(d=>{
+    fiiSum+=d.fii;diiSum+=d.dii;
+    cumFii.push(fiiSum);cumDii.push(diiSum);
+  });
+
+  const allCum=[
+    ...(_seriesFii?cumFii:[]),
+    ...(_seriesDii?cumDii:[])
+  ];
+  const cMin=allCum.length?Math.min(...allCum):0;
+  const cMax=allCum.length?Math.max(...allCum):1;
+  // Pad 5% top and bottom
+  const cPad=(cMax-cMin)*0.05||500;
+  const cLo=cMin-cPad,cHi=cMax+cPad,cRange=cHi-cLo||1;
+
+  // Zero line sits at its natural position within the range
+  const midY=PAD.t+chartH-(0-cLo)/cRange*chartH;
+  const xOf=i=>PAD.l+i/(data.length-1||1)*chartW;
+  const yC=v=>PAD.t+chartH-(v-cLo)/cRange*chartH;
+
+  // Background
+  ctx.fillStyle=isDark?'#0d1117':'#ffffff';ctx.fillRect(0,0,W,H);
+
+  // Vertical grid lines
+  const ticks=xTickIndices(data);
+  const gridCol=isDark?'rgba(255,255,255,.045)':'rgba(0,0,0,.06)';
+  ctx.strokeStyle=gridCol;ctx.lineWidth=1;ctx.setLineDash([]);
+  ticks.forEach(i=>{const x=xOf(i);ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,H-PAD.b);ctx.stroke();});
+
+  // Horizontal grid lines at nice round intervals
+  const step=niceStep(cRange,6);
+  const startTick=Math.ceil(cLo/step)*step;
+  const textCol=isDark?'#484f58':'#aab4c0';
+  ctx.font=`500 9.5px 'DM Sans',sans-serif`;
+  for(let v=startTick;v<=cHi+step*0.1;v+=step){
+    const y=yC(v);
+    if(y<PAD.t||y>H-PAD.b)continue;
+    ctx.strokeStyle=gridCol;ctx.setLineDash([3,5]);
+    ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(W-PAD.r,y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=textCol;ctx.textAlign='right';
+    ctx.fillText(fmtCr(v),PAD.l-5,y+3.5);
+  }
+
+  // Zero line — prominent if zero is in range
+  if(cLo<=0&&cHi>=0){
+    const zy=yC(0);
+    ctx.strokeStyle=isDark?'rgba(255,255,255,.22)':'rgba(0,0,0,.22)';
+    ctx.lineWidth=1.5;ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(PAD.l,zy);ctx.lineTo(W-PAD.r,zy);ctx.stroke();
+    ctx.fillStyle=textCol;ctx.textAlign='right';ctx.font=`500 9.5px 'DM Sans',sans-serif`;
+    ctx.fillText('0',PAD.l-5,zy+3.5);
+  }
+
+  // Nifty secondary axis
+  const niftyVals=data.map(d=>d.nifty).filter(v=>v!=null);
+  if(_seriesNifty&&niftyVals.length){
+    const nMin=Math.min(...niftyVals),nMax=Math.max(...niftyVals);
+    const nPad2=(nMax-nMin)*0.05||100;
+    const nLo=nMin-nPad2,nRange2=(nMax+nPad2)-nLo;
+    const yN=v=>PAD.t+chartH-(v-nLo)/nRange2*chartH;
+    const nStep=niceStep(nMax-nMin,5);
+    const nStart=Math.ceil(nMin/nStep)*nStep;
+    ctx.fillStyle='rgba(210,153,34,.7)';ctx.font=`500 9px 'DM Sans',sans-serif`;ctx.textAlign='left';
+    for(let v=nStart;v<=nMax+nStep*0.1;v+=nStep)ctx.fillText(fmtNifty(v),W-PAD.r+4,yN(v)+3.5);
+    const niftyDash=_niftyStyle==='dashed'?[5,4]:_niftyStyle==='dotted'?[2,3]:[];
+    ctx.strokeStyle='rgba(210,153,34,.9)';ctx.lineWidth=1.5;ctx.setLineDash(niftyDash);
+    ctx.lineJoin='round';ctx.beginPath();
+    let ns=false;
+    data.forEach((d,i)=>{
+      if(d.nifty==null){ns=false;return;}
+      const x=xOf(i),y=yN(d.nifty);
+      ns?ctx.lineTo(x,y):ctx.moveTo(x,y);ns=true;
+    });
+    ctx.stroke();ctx.setLineDash([]);
+  }
+
+  // Area fill between the two cumulative lines (divergence gap)
+  if(_seriesFii&&_seriesDii){
+    ctx.beginPath();
+    cumFii.forEach((v,i)=>i===0?ctx.moveTo(xOf(i),yC(v)):ctx.lineTo(xOf(i),yC(v)));
+    for(let i=data.length-1;i>=0;i--)ctx.lineTo(xOf(i),yC(cumDii[i]));
+    ctx.closePath();
+    ctx.fillStyle=`rgba(124,58,237,${_fillOpacity})`;ctx.fill();
+  }
+
+  // FII cumulative line + area fill under
+  if(_seriesFii){
+    const pts=cumFii.map((v,i)=>({x:xOf(i),y:yC(v)}));
+    const zy=cLo<=0&&cHi>=0?yC(0):H-PAD.b;
+    // area
+    ctx.beginPath();ctx.moveTo(pts[0].x,zy);
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(pts[pts.length-1].x,zy);ctx.closePath();
+    ctx.fillStyle=`rgba(56,139,253,${_fillOpacity})`;ctx.fill();
+    // line
+    ctx.strokeStyle='rgba(56,139,253,.9)';ctx.lineWidth=2;ctx.setLineDash([]);
+    ctx.lineJoin='round';ctx.beginPath();
+    pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+  }
+
+  // DII cumulative line + area fill
+  if(_seriesDii){
+    const pts=cumDii.map((v,i)=>({x:xOf(i),y:yC(v)}));
+    const zy=cLo<=0&&cHi>=0?yC(0):H-PAD.b;
+    ctx.beginPath();ctx.moveTo(pts[0].x,zy);
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(pts[pts.length-1].x,zy);ctx.closePath();
+    ctx.fillStyle=`rgba(21,184,159,${_fillOpacity})`;ctx.fill();
+    ctx.strokeStyle='rgba(21,184,159,.9)';ctx.lineWidth=2;ctx.setLineDash([]);
+    ctx.lineJoin='round';ctx.beginPath();
+    pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+  }
+
+  drawCrosshair(ctx,_crosshairX,_crosshairY,W,H,PAD,isDark);
+
+  // X-axis labels
+  ctx.fillStyle=textCol;ctx.font=`400 9px 'DM Sans',sans-serif`;ctx.textAlign='center';
+  ticks.forEach(i=>{ctx.fillText(fmtDateLabel(data[i].label,shouldShowYear(data[i],i,data)),xOf(i),H-PAD.b+13);});
+
+  // Store cumulative values for tooltip
+  return{slotW:chartW/(data.length-1||1),vmax:cRange,midY,chartH,xOf,cumFii,cumDii};
+}
+
+/* ── STEP RENDER ─────────────────────────────────────────────────────── */
+function renderStep(data,ctx,W,H,PAD,isDark){
+  const chartW=W-PAD.l-PAD.r,chartH=H-PAD.t-PAD.b;
+  const flowVals=[
+    ...(_seriesFii?data.map(d=>d.fii):[]),
+    ...(_seriesDii?data.map(d=>d.dii):[])
+  ];
+  const vmax=flowVals.length?Math.max(...flowVals.map(Math.abs))||1:1;
+  const midY=PAD.t+chartH/2;
+  const xOf=i=>PAD.l+i/(data.length-1||1)*chartW;
+  const yFlow=v=>midY-(v/vmax)*(chartH/2);
+
+  drawGrid(ctx,W,H,PAD,isDark,midY,vmax,data,xOf);
+
+  // Nifty
+  const niftyVals=data.map(d=>d.nifty).filter(v=>v!=null);
+  if(_seriesNifty&&niftyVals.length){
+    const nMin=Math.min(...niftyVals),nMax=Math.max(...niftyVals);
+    const nPad=(nMax-nMin)*0.05||100;
+    const nLo=nMin-nPad,nRange=(nMax+nPad)-nLo;
+    const yN=v=>PAD.t+chartH-(v-nLo)/nRange*chartH;
+    const nStep=niceStep(nMax-nMin,5);
+    const nStart=Math.ceil(nMin/nStep)*nStep;
+    ctx.fillStyle='rgba(210,153,34,.7)';ctx.font=`500 9px 'DM Sans',sans-serif`;ctx.textAlign='left';
+    for(let v=nStart;v<=nMax+nStep*0.1;v+=nStep)ctx.fillText(fmtNifty(v),W-PAD.r+4,yN(v)+3.5);
+    const niftyDash=_niftyStyle==='dashed'?[5,4]:_niftyStyle==='dotted'?[2,3]:[];
+    ctx.strokeStyle='rgba(210,153,34,.9)';ctx.lineWidth=1.5;ctx.setLineDash(niftyDash);
+    ctx.lineJoin='round';ctx.beginPath();
+    let ns=false;
+    data.forEach((d,i)=>{
+      if(d.nifty==null){ns=false;return;}
+      const x=xOf(i),y=yN(d.nifty);
+      ns?ctx.lineTo(x,y):ctx.moveTo(x,y);ns=true;
+    });
+    ctx.stroke();ctx.setLineDash([]);
+  }
+
+  function drawStep(pts,color){
+    if(pts.length<2)return;
+    ctx.strokeStyle=color;ctx.lineWidth=1.8;ctx.setLineDash([]);ctx.lineJoin='round';
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++){
+      ctx.lineTo(pts[i].x,pts[i-1].y); // horizontal
+      ctx.lineTo(pts[i].x,pts[i].y);   // vertical
+    }
+    ctx.stroke();
+  }
+
+  if(_seriesFii)drawStep(data.map((d,i)=>({x:xOf(i),y:yFlow(d.fii)})),'rgba(56,139,253,.9)');
+  if(_seriesDii)drawStep(data.map((d,i)=>({x:xOf(i),y:yFlow(d.dii)})),'rgba(21,184,159,.9)');
+
+  drawCrosshair(ctx,_crosshairX,_crosshairY,W,H,PAD,isDark);
+
+  const ticks=xTickIndices(data);
+  ctx.fillStyle=isDark?'#484f58':'#aab4c0';
+  ctx.font=`400 9px 'DM Sans',sans-serif`;ctx.textAlign='center';
+  ticks.forEach(i=>{ctx.fillText(fmtDateLabel(data[i].label,shouldShowYear(data[i],i,data)),xOf(i),H-PAD.b+13);});
+  return{slotW:chartW/(data.length-1||1),vmax,midY,chartH,xOf};
+}
+
+/* ── MAIN RENDER ─────────────────────────────────────────────────────── */
+function renderFlow(){
+  if(!_flowRaw||!_flowRaw.length)return;
+  const s=setupCanvas();if(!s)return;
+  const{ctx,W,H,wrap}=s;
+  const isDark=document.documentElement.getAttribute('data-theme')!=='light';
+  const data=aggregateFlows(_flowRaw,_flowPeriod);
+  const needNiftyAxis=(_flowMode==='lines'||_flowMode==='cumulative'||_flowMode==='step')&&_seriesNifty;
+  const PAD={t:24,r:needNiftyAxis?62:16,b:38,l:56};
+  let meta;
+  if(_flowMode==='bars')meta=renderBars(data,ctx,W,H,PAD,isDark);
+  else if(_flowMode==='lines')meta=renderLines(data,ctx,W,H,PAD,isDark);
+  else if(_flowMode==='cumulative')meta=renderCumulative(data,ctx,W,H,PAD,isDark);
+  else meta=renderStep(data,ctx,W,H,PAD,isDark);
+  wrap._flowData=data;wrap._flowMeta=meta;wrap._flowPad=PAD;wrap._flowMode=_flowMode;
+  wrap._isDark=isDark;
+}
+
+/* ── TOOLTIP + CROSSHAIR ─────────────────────────────────────────────── */
+(function(){
+  const wrap=document.getElementById('flow-canvas-wrap');
+  const tt=document.getElementById('flow-tt');
+  if(!wrap||!tt)return;
+
+  wrap.addEventListener('mousemove',e=>{
+    const data=wrap._flowData;const meta=wrap._flowMeta;const PAD=wrap._flowPad;
+    if(!data||!meta)return;
+    const rect=wrap.getBoundingClientRect();
+    const mx=e.clientX-rect.left;
+    const my=e.clientY-rect.top;
+    const x=mx-PAD.l;
+    const mode=wrap._flowMode||'bars';
+    let idx;
+    if(mode==='bars'){
+      idx=Math.floor(x/meta.slotW);
+    }else{
+      const chartW=wrap.clientWidth-PAD.l-PAD.r;
+      idx=Math.round(x/chartW*(data.length-1));
+    }
+    idx=Math.max(0,Math.min(data.length-1,idx));
+    if(x<0||x>wrap.clientWidth-PAD.l-PAD.r){
+      tt.style.display='none';_crosshairX=null;_crosshairY=null;renderFlow();return;
+    }
+    const item=data[idx];
+
+    // Crosshair position
+    _crosshairX=mode==='bars'
+      ?(PAD.l+idx*meta.slotW+meta.slotW/2)
+      :(meta.xOf?meta.xOf(idx):mx);
+    _crosshairY=my;
+    renderFlow();
+
+    // Tooltip content
+    const isDark=wrap._isDark;
+    const isCumul=mode==='cumulative';
+    const fiiVal=isCumul&&meta.cumFii?meta.cumFii[idx]:item.fii;
+    const diiVal=isCumul&&meta.cumDii?meta.cumDii[idx]:item.dii;
+    const spread=fiiVal+diiVal;  // net institutional flow (FII+DII)
+    const fiiStr=fmtCrFull(fiiVal);
+    const diiStr=fmtCrFull(diiVal);
+    const spreadStr=(spread>=0?'+':'')+Math.round(spread).toLocaleString('en-IN')+'cr';
+    const spreadCol=spread>=0?'rgb(21,184,159)':'rgb(248,81,73)';
+
+    let rows=`
+      <div class="flow-tt-date">${item.label}</div>
+      <div class="flow-tt-row" id="ftt-row-fii" style="display:${mode==='bars'||_seriesFii?'flex':'none'}">
+        <span class="flow-tt-lbl"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:rgb(56,139,253);margin-right:5px;vertical-align:middle;"></span>FII</span>
+        <span class="flow-tt-val" style="color:rgb(56,139,253)">${fiiStr}</span>
+      </div>
+      <div class="flow-tt-row" id="ftt-row-dii" style="display:${mode==='bars'||_seriesDii?'flex':'none'}">
+        <span class="flow-tt-lbl"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:rgb(21,184,159);margin-right:5px;vertical-align:middle;"></span>DII</span>
+        <span class="flow-tt-val" style="color:rgb(21,184,159)">${diiStr}</span>
+      </div>`;
+    if(mode!=='bars'&&_seriesNifty&&item.nifty!=null){
+      rows+=`<div class="flow-tt-row" id="ftt-row-nifty">
+        <span class="flow-tt-lbl"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:rgb(210,153,34);margin-right:5px;vertical-align:middle;"></span>Nifty</span>
+        <span class="flow-tt-val" style="color:rgb(210,153,34)">${fmtNifty(item.nifty)}</span>
+      </div>`;
+    }
+    // Spread row
+    rows+=`<div style="border-top:1px solid var(--bd);margin-top:5px;padding-top:5px;display:flex;justify-content:space-between;gap:16px;">
+      <span class="flow-tt-lbl" style="font-size:.65rem;">Net Flow</span>
+      <span class="flow-tt-val" style="color:${spreadCol};font-size:.68rem;">${spreadStr}</span>
+    </div>`;
+
+    tt.innerHTML=rows;
+    tt.style.display='block';
+    const ttW=170;
+    tt.style.left=Math.min(mx+14,wrap.clientWidth-ttW-4)+'px';
+    tt.style.top=Math.max(4,my-90)+'px';
+  });
+
+  wrap.addEventListener('mouseleave',()=>{
+    tt.style.display='none';
+    _crosshairX=null;_crosshairY=null;
+    renderFlow();
+  });
+})();
+
+window.addEventListener('resize',()=>{
+  if(document.getElementById('p-flows').classList.contains('on')&&_flowRaw)renderFlow();
+});
+
+/* ── Pipeline history ───────────────────────────────────────────────── */
+async function lHist(){
+  try{
+    const runs=await req('/pipeline/history');
+    const el=document.getElementById('rtl');
+    if(!runs.length){el.innerHTML='<div class="empty"><div class="ei">📭</div>No runs yet.</div>';return;}
+    el.innerHTML=runs.map(r=>{
+      const dc=r.status==='success'?'rd-ok':r.status==='running'?'rd-run':'rd-fail';
+      const t=new Date(r.started_at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      return'<div class="ritem"><div class="rdot '+dc+'"></div><span class="rtime">'+t+'</span>'
+        +'<div class="rstats">'
+        +'<span class="rstat"><strong>'+(r.stocks_fetched||0)+'</strong> fetched</span>'
+        +'<span class="rstat"><strong>'+(r.stocks_scored||0)+'</strong> scored</span>'
+        +'<span class="rstat" style="color:var(--red);"><strong>'+(r.stocks_flagged||0)+'</strong> flagged</span>'
+        +'</div><span class="rtrig">'+esc(r.triggered_by||'cron')+'</span>'
+        +(r.error_message?'<div style="font-size:.7rem;color:var(--red);margin-top:3px;">'+esc(r.error_message)+'</div>':'')
+        +'</div>';
+    }).join('');
+  }catch(e){document.getElementById('rtl').innerHTML='<div class="empty">'+esc(e.message)+'</div>';}
+}
+
+/* ── Run pipeline ───────────────────────────────────────────────────── */
+let _pi=null,_piTicks=0;
+const POLL_MAX=40; // 40 × 3s = 120s = 2 min hard stop
+
+async function runPipe(){
+  const btn=document.getElementById('runbtn');
+  btn.disabled=true;btn.textContent='Running…';
+  _piTicks=0;
+  try{
+    await req('/pipeline/run',{method:'POST'});
+    _pi=setInterval(async()=>{
+      _piTicks++;
+      // Hard timeout — 2 minutes
+      if(_piTicks>=POLL_MAX){
+        clearInterval(_pi);_pi=null;
+        btn.disabled=false;btn.innerHTML='&#9654; Run Pipeline';
+        const lr=document.getElementById('lrun');
+        if(lr)lr.textContent='⚠️ Pipeline timed out — check terminal';
+        // Auto-refresh data anyway — pipeline may have partially completed
+        lDiv();
+        if(document.getElementById('p-heatmap').classList.contains('on')){
+          _hmData=null;lHeat();
+        }
+        if(document.getElementById('p-flows').classList.contains('on')){
+          _flowRaw=null;lFlows();
+        }
+        return;
+      }
+      try{
+        const s=await req('/pipeline/status');
+        if(!s.is_running){
+          clearInterval(_pi);_pi=null;
+          btn.disabled=false;btn.innerHTML='&#9654; Run Pipeline';
+          if(s.latest_run)setLR(s.latest_run);
+          lDiv();
+          // Always refresh flows after a successful run — _flowRaw may be stale
+          _flowRaw=null;
+          if(document.getElementById('p-flows').classList.contains('on'))lFlows();
+        }
+      }catch(e){clearInterval(_pi);_pi=null;}
+    },3000);
+  }catch(e){btn.disabled=false;btn.innerHTML='&#9654; Run Pipeline';}
+}
+function setLR(r){
+  if(!r)return;
+  const t=new Date(r.finished_at||r.started_at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('lrun').textContent='Last run: '+t+' · '+(r.stocks_flagged||0)+' flagged';
+}
+
+/* ── Boot ───────────────────────────────────────────────────────────── */
+async function boot(){
+  mkt();setInterval(mkt,60000);
+  try{
+    const c=await req('/stocks/count');
+    if(c.total===0){document.getElementById('ib').style.display='flex';return;}
+  }catch(e){}
+  const st=await req('/pipeline/status').catch(()=>null);
+  if(st&&st.latest_run)setLR(st.latest_run);
+  lDiv();
+  // Pre-warm flows data in the background so the tab loads instantly
+  setTimeout(()=>lFlows(),800);
+}
+boot();
+</script>
+</body>
+</html>
+
