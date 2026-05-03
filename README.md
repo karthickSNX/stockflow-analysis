@@ -36,7 +36,7 @@ A personal market intelligence dashboard for NSE Nifty 50. Tracks institutional 
 
 ```
    DATABASE_URL=postgresql://your-connection-string-here
-   CORS_ORIGIN=http://localhost:8000
+  
 ```
 
 5. Run `app/data/schema.sql` in your Supabase SQL editor or any PostgreSQL instance to create all five tables
