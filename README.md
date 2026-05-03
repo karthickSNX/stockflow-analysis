@@ -51,9 +51,7 @@ A personal market intelligence dashboard for NSE Nifty 50. Tracks institutional 
 - **Data sources** — unofficial APIs, not authorised data feeds. Use at your own discretion
 - **Scope** — v1 covers Nifty 50 only
 
-## Licence
 
-MIT
 
 ## Screenshots
 
