@@ -91,7 +91,7 @@ async def lifespan(app: FastAPI):
     close_all()
 
 app = FastAPI(
-    title="NSE Divergence API",
+    title="StockFlow Analysis API",
     description="FII/DII vs retail flow divergence for NSE stocks",
     version="1.0.0",
     lifespan=lifespan,

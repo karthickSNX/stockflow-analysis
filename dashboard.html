@@ -312,6 +312,15 @@ html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink)
   </div>
 </div>
 
+<!-- Pipeline progress bar — hidden until a run starts -->
+<div id="pipe-bar-wrap" style="display:none;background:var(--bg2);border-bottom:1px solid var(--bdr);padding:6px 18px;display:none;align-items:center;gap:12px;">
+  <div style="flex:1;background:var(--bg3);border-radius:99px;height:6px;overflow:hidden;">
+    <div id="pipe-bar" style="height:100%;width:0%;background:var(--blue);border-radius:99px;transition:width .5s ease;"></div>
+  </div>
+  <span id="pipe-stage" style="font-size:.72rem;color:var(--ink2);white-space:nowrap;min-width:140px;"></span>
+  <span id="pipe-count" style="font-size:.72rem;color:var(--ink3);white-space:nowrap;"></span>
+</div>
+
 <!-- Nav -->
 <div class="nav" id="main-nav">
   <div class="ntab on" onclick="sw('divergence',this)">Divergence</div>
@@ -1117,7 +1126,15 @@ function renderHeat(data){
     ?[...data].sort((a,b)=>Math.abs(b.avg_score||0)-Math.abs(a.avg_score||0))
     :[...data].sort((a,b)=>(b.stock_count||1)-(a.stock_count||1));
 
-  const items=ordered.map(d=>({...d,val:d.stock_count||1}));
+  // val drives tile SIZE in squarify — must match the sort mode.
+  // When sorting by score, tile area reflects signal intensity (abs score).
+  // When sorting by size, tile area reflects stock count as before.
+  const items=ordered.map(d=>({
+    ...d,
+    val:_hmSort==='score'
+      ?Math.max(0.05,Math.abs(d.avg_score||0))  // floor at 0.05 so zero-score tiles still render
+      :(d.stock_count||1)
+  }));
   const raw=squarify(items,0,0,W,H);
   const tiles=raw.map(t=>({...t,px:t.x+GAP/2,py:t.y+GAP/2,pw:Math.max(1,t.w-GAP),ph:Math.max(1,t.h-GAP)}));
 
@@ -1938,45 +1955,62 @@ async function lHist(){
 /* ── Run pipeline ───────────────────────────────────────────────────── */
 let _pi=null,_piTicks=0;
 const POLL_MAX=40; // 40 × 3s = 120s = 2 min hard stop
+const STAGE_LABELS=['Queued…','Fetching flows…','Fetching prices…','Scoring divergence…','Done ✓'];
+
+function setPipeUI(stage, total){
+  // stage 0-4, total = 3 (always 3 stages)
+  const pct=Math.round((stage/total)*100);
+  const label=STAGE_LABELS[stage]||'Running…';
+  const stageNum=stage<total?'Stage '+stage+'/'+total:'3/3 done';
+  document.getElementById('pipe-bar-wrap').style.display='block';
+  document.getElementById('pipe-bar').style.width=pct+'%';
+  document.getElementById('pipe-stage').textContent=label;
+  document.getElementById('pipe-count').textContent=stage===0?'':stageNum;
+}
+function clearPipeUI(){
+  document.getElementById('pipe-bar-wrap').style.display='none';
+  document.getElementById('pipe-bar').style.width='0%';
+  document.getElementById('pipe-stage').textContent='';
+  document.getElementById('pipe-count').textContent='';
+}
 
 async function runPipe(){
   const btn=document.getElementById('runbtn');
   btn.disabled=true;btn.textContent='Running…';
+  setPipeUI(0,3);
   _piTicks=0;
   try{
     await req('/pipeline/run',{method:'POST'});
     _pi=setInterval(async()=>{
       _piTicks++;
-      // Hard timeout — 2 minutes
       if(_piTicks>=POLL_MAX){
         clearInterval(_pi);_pi=null;
         btn.disabled=false;btn.innerHTML='&#9654; Run Pipeline';
+        clearPipeUI();
         const lr=document.getElementById('lrun');
         if(lr)lr.textContent='⚠️ Pipeline timed out — check terminal';
-        // Auto-refresh data anyway — pipeline may have partially completed
         lDiv();
-        if(document.getElementById('p-heatmap').classList.contains('on')){
-          _hmData=null;lHeat();
-        }
-        if(document.getElementById('p-flows').classList.contains('on')){
-          _flowRaw=null;lFlows();
-        }
+        if(document.getElementById('p-heatmap').classList.contains('on')){_hmData=null;lHeat();}
+        if(document.getElementById('p-flows').classList.contains('on')){_flowRaw=null;lFlows();}
         return;
       }
       try{
         const s=await req('/pipeline/status');
+        const stage=s.latest_run?.current_stage??0;
+        setPipeUI(Math.min(stage,4),3);
         if(!s.is_running){
           clearInterval(_pi);_pi=null;
           btn.disabled=false;btn.innerHTML='&#9654; Run Pipeline';
+          setPipeUI(4,3);
+          setTimeout(clearPipeUI,2000); // hold "Done ✓" for 2s then clear
           if(s.latest_run)setLR(s.latest_run);
           lDiv();
-          // Always refresh flows after a successful run — _flowRaw may be stale
           _flowRaw=null;
           if(document.getElementById('p-flows').classList.contains('on'))lFlows();
         }
-      }catch(e){clearInterval(_pi);_pi=null;}
+      }catch(e){clearInterval(_pi);_pi=null;clearPipeUI();}
     },3000);
-  }catch(e){btn.disabled=false;btn.innerHTML='&#9654; Run Pipeline';}
+  }catch(e){btn.disabled=false;btn.innerHTML='&#9654; Run Pipeline';clearPipeUI();}
 }
 function setLR(r){
   if(!r)return;

@@ -10,11 +10,12 @@ _pipeline_running = False
 async def trigger_pipeline(background_tasks: BackgroundTasks):
     """
     Trigger the pipeline from the dashboard. Returns immediately.
-    run_pipeline() is synchronous blocking code — calling it directly inside
-    an async background task blocks the entire event loop, causing all other
-    endpoints (/divergence/all, /flows/all etc) to time out while the pipeline
-    runs. run_in_executor() offloads it to a thread pool so the event loop
-    stays free to serve other requests normally.
+    run_pipeline() is synchronous blocking code — run_in_executor() offloads
+    it to uvicorn's threadpool so the event loop stays free to serve other
+    requests (status polls, heatmap etc) while the pipeline runs.
+    Using uvicorn's own threadpool (not threading.Thread) is important on
+    Windows with --reload: it ensures stdout from the pipeline thread is
+    forwarded correctly to the terminal via the reloader's parent process.
     """
     global _pipeline_running
     if _pipeline_running:
@@ -41,7 +42,7 @@ async def pipeline_status():
     try:
         cur = conn.cursor()
         cur.execute("""
-            SELECT id, started_at, finished_at, status,
+            SELECT id, started_at, finished_at, status, current_stage,
                    stocks_fetched, stocks_scored, stocks_flagged, triggered_by
             FROM pipeline_runs ORDER BY started_at DESC LIMIT 1
         """)
@@ -51,9 +52,10 @@ async def pipeline_status():
             latest = {
                 "id": row[0], "started_at": str(row[1]),
                 "finished_at": str(row[2]) if row[2] else None,
-                "status": row[3], "stocks_fetched": row[4],
-                "stocks_scored": row[5], "stocks_flagged": row[6],
-                "triggered_by": row[7]
+                "status": row[3], "current_stage": row[4],
+                "stocks_fetched": row[5],
+                "stocks_scored": row[6], "stocks_flagged": row[7],
+                "triggered_by": row[8]
             }
         return {"is_running": _pipeline_running, "latest_run": latest}
     finally:
